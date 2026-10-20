@@ -1,0 +1,23 @@
+[package]
+name = "cellar-compare"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+# Detaches this crate from the parent package, so `cargo build` and `cargo test` at the root
+# never try to compile it — the same arrangement `fuzz/` uses. `calamine` is here only as a
+# rival to measure against; it is deliberately not a dependency of `cellar` itself.
+[workspace]
+
+[dependencies]
+cellar = { path = ".." }
+calamine = "0.37"
+# Needed to generate the forward-slash fixture copy and the synthetic archives.
+zipcore = "0.2"
+
+[[bin]]
+name = "compare"
+path = "src/main.rs"
+[[bin]]
+name = "window"
+path = "src/window.rs"

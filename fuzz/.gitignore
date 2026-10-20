@@ -1,0 +1,10 @@
+# Build output from `cargo fuzz`.
+target
+
+# The corpus is generated from `tests/data` rather than committed, so the fixtures stay the one
+# source of truth and the repository does not carry a second copy of them.
+corpus
+
+# Crashing inputs and coverage data.
+artifacts
+coverage

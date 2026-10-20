@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # A weekly run, so a newly published advisory or a yanked dependency surfaces even when
+    # nothing in the repository changed. This crate exists because a dependency was yanked
+    # out from under a whole ecosystem, so the supply-chain job is not incidental.
+    - cron: "0 6 * * 1"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test:
+    name: test (${{ matrix.features }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        features:
+          - ""
+          - "serde"
+          - "serde,dates"
+          - "codepage"
+          - "serde,dates,codepage"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test ${{ matrix.features && format('--features {0}', matrix.features) || '' }}
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  msrv:
+    name: minimum supported Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88
+      - uses: Swatinem/rust-cache@v2
+      # Only the library, so dev-dependencies are free to need a newer toolchain. The default
+      # feature set is what `rust-version` promises; the optional features inherit the minimum
+      # supported Rust of whatever they pull in.
+      - run: cargo build --lib
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Builds the crate from the packaged sources, so a file the library needs but the package
+      # leaves out — or a manifest that only works in the working tree — fails here rather than
+      # at release time.
+      - run: cargo package
+
+  deny:
+    name: supply chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories bans sources licenses
+
+  fuzz:
+    name: fuzz (smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - run: cargo install cargo-fuzz --locked
+      # Seeds come from the real fixtures rather than a committed corpus, so there is one source
+      # of truth and the repository does not carry a second copy of them. Starting from valid
+      # containers is what lets the mutator reach the format logic instead of bouncing off the
+      # signature check.
+      - name: Seed the corpus from the fixtures
+        run: |
+          mkdir -p fuzz/corpus/open
+          cp tests/data/chanora.xlsx tests/data/rollmilkice.xlsx \
+             tests/data/sample.ods tests/data/word97.doc fuzz/corpus/open/
+      # A short session rather than a corpus run: enough to catch a panic introduced by a change,
+      # while the scheduled job is where real coverage accumulates.
+      - run: cargo +nightly fuzz run open -- -max_total_time=60

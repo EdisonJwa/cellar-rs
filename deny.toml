@@ -1,0 +1,34 @@
+# Supply-chain policy for cargo-deny.
+#
+# The yanked-crate check is the reason this file exists: the whole point of this crate is that a
+# dependency can be yanked out from under every consumer of a format reader, and that should fail
+# CI loudly rather than be discovered by someone's build.
+
+[advisories]
+# Treat a yanked dependency as an error. A yanked release is not necessarily vulnerable, but it
+# is unavailable to anyone resolving dependencies from scratch, which is the failure this crate
+# was written to get away from.
+yanked = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[licenses]
+# Permissive licenses only. Anything not listed fails until it is reviewed deliberately.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "MPL-2.0",
+]

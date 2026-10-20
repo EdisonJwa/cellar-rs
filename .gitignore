@@ -1,0 +1,21 @@
+# Build artefacts
+/target/
+**/*.rs.bk
+
+# Nested workspaces: the comparison harness and the fuzz target are built separately, so their
+# artefacts live outside this one.
+/compare/target/
+/compare/target/fixtures/
+/fuzz/target
+/fuzz/corpus
+/fuzz/artifacts
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local scratch
+/scratch/
