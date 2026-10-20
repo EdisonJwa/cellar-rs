@@ -420,8 +420,8 @@ Stated narrowly, because a list of advantages that includes parity is not a list
    16.6 MB for the sparse-then-dense shape, and a test fails if that reverts.
 3. **Streaming materialises nothing.** A sheet whose rectangle is 17 billion cells reads in
    constant space, through the same decoder the dense path uses.
-4. **The container is ours.** `zipcore`: no `unsafe`, ZIP64, CRC verification, two dependencies
-   instead of eight.
+4. **The container is ours.** `zipcore`: no `unsafe`, ZIP64, CRC verification, three dependencies
+   (`crc32fast`, `miniz_oxide`, `getrandom`) instead of eight.
 
 **Parity, not a moat.** Flat whole-sheet reads are ~1.3× faster on a synthetic sheet and
 indistinguishable on a real one. Opening is metadata-only, which is table stakes.

@@ -20,7 +20,7 @@ exclude = ["compare/", "fuzz/"]
 # swapped without touching any format reader. It is `zipcore`, this project's own
 # from-scratch ZIP reader: no `zip` crate, no `unsafe`, ZIP64, and a streaming entry
 # reader that a windowed read can abandon partway through.
-zipcore = "0.2"
+zipcore = "0.10.1"
 chrono = { version = "0.4", optional = true, default-features = false, features = [
     "std",
 ] }

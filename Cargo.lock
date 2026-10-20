@@ -866,11 +866,12 @@ dependencies = [
 
 [[package]]
 name = "zipcore"
-version = "0.2.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7ff4a5c7700fb3544264cc21fe8ddb0facc0a23d856505b2c9fd00ea5b82ac"
+checksum = "0a70eabf6a55d0b1f0ccb1688d242b8f7b8436c1dd8afa8b40b1c902fcbdda6d"
 dependencies = [
  "crc32fast",
+ "getrandom",
  "miniz_oxide",
 ]
 
