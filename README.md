@@ -423,6 +423,12 @@ away:
 - **Short chains are reported, not silently truncated.** A compound-file stream whose sector
   chain ends before its declared size is a damaged file; returning the short buffer would surface
   much later as an unexplained end-of-stream from a record parser.
+- **The cell budget counts payloads, not just slots.** A `Data` slot is 32 bytes whether it is
+  empty or owns a megabyte of text, so a budget derived from the slot size cannot see what the
+  cells hold. Cells all naming one shared string passed the slot budget while allocating far more
+  heap than it allowed — a 49 KB file measured at 23 MB, and at a larger shape unbounded. Text is
+  now charged as it is stored, against a separate 256 MiB budget, and the refusal happens before
+  the allocation.
 - **XML entity expansion.** DTDs are skipped rather than resolved, and there are no external
   entity fetches, so billion-laughs and XXE have nothing to work with.
 - **Dense sheets.** A range is dense, so a file with cells at `A1` and `XFD1048576` implies

@@ -240,6 +240,38 @@ const MIN_AXIS: u64 = 16;
 /// the dense and streaming views of a sheet agree about what is addressable.
 pub(crate) const MAX_AXIS: u32 = 1 << 31;
 
+/// Heap bytes a cell value owns, so the builder can charge them against its budget.
+///
+/// Implemented only for the value types the readers actually build ranges from. The default is
+/// zero: a type that owns no heap cannot blow a budget by existing.
+pub(crate) trait HeapPayload {
+    /// Bytes of heap this value holds beyond its own slot.
+    fn heap_payload(&self) -> u64;
+}
+
+impl HeapPayload for Data {
+    fn heap_payload(&self) -> u64 {
+        match self {
+            Data::String(s) => s.len() as u64,
+            Data::DateTimeIso(s) | Data::DurationIso(s) => s.len() as u64,
+            Data::Error(crate::datatype::CellError::Unknown(s)) => s.len() as u64,
+            _ => 0,
+        }
+    }
+}
+
+impl HeapPayload for String {
+    fn heap_payload(&self) -> u64 {
+        self.len() as u64
+    }
+}
+
+impl HeapPayload for i32 {
+    fn heap_payload(&self) -> u64 {
+        0
+    }
+}
+
 /// Builds a range by writing cells straight into their final positions.
 ///
 /// [`Range::from_sparse`] holds the cells twice — once as the sparse list, once as the dense range
@@ -262,7 +294,26 @@ pub(crate) struct SheetBuilder<T> {
     min: (u32, u32),
     max: (u32, u32),
     wrote: bool,
+    /// Heap bytes carried by the values written, charged against [`MAX_PAYLOAD_BYTES`].
+    ///
+    /// The cell count budget measures the *slots*, and a slot is a fixed size however much heap
+    /// its value owns. A sheet of 20,000 cells holding 1 KiB strings costs 640 KB of slots and
+    /// 20 MB of payloads, so counting slots alone let a 49 KB file demand 23 MB — measured. This
+    /// field makes the payload visible to the same budget.
+    payload_bytes: u64,
 }
+
+/// Largest total heap payload one sheet may hold, in bytes.
+///
+/// Charged separately from the slot count because the two measure different things: a million
+/// small numbers and a million long strings occupy the same slots but differ by gigabytes.
+///
+/// Deliberately smaller than the slot budget. The slot budget bounds the rectangle the caller
+/// asked for and may legitimately reach a gigabyte; text is different — a real sheet's total
+/// string content is a few megabytes, and permitting a gigabyte of it lets a 150 KB file make the
+/// process allocate one before being refused. 256 MiB is two orders of magnitude above any
+/// workbook this reader has been measured against.
+pub(crate) const MAX_PAYLOAD_BYTES: u64 = 256 << 20;
 
 /// Largest buffer reserved from a declared extent, in bytes.
 ///
@@ -285,6 +336,7 @@ impl<T: Default + Clone> SheetBuilder<T> {
             min: (0, 0),
             max: (0, 0),
             wrote: false,
+            payload_bytes: 0,
         };
         if let Some(extent) = hint {
             let cells = u64::from(extent.rows) * u64::from(extent.cols);
@@ -315,11 +367,25 @@ impl<T: Default + Clone> SheetBuilder<T> {
     }
 
     /// Places a value, growing the buffer first if the position falls outside it.
-    pub(crate) fn write(&mut self, row: u32, col: u32, value: T) -> Result<()> {
+    pub(crate) fn write(&mut self, row: u32, col: u32, value: T) -> Result<()>
+    where
+        T: HeapPayload,
+    {
         if row >= MAX_AXIS || col >= MAX_AXIS {
             return Err(Error::format(format!(
                 "cell at ({row}, {col}) is outside any spreadsheet grid"
             )));
+        }
+        // Payload is charged before the value is stored, so a file cannot allocate the heap first
+        // and be refused afterwards.
+        let payload = value.heap_payload();
+        if payload > 0 {
+            self.payload_bytes = self.payload_bytes.saturating_add(payload);
+            if self.payload_bytes > MAX_PAYLOAD_BYTES {
+                return Err(Error::format(format!(
+                    "sheet's cell text exceeds the {MAX_PAYLOAD_BYTES} byte limit"
+                )));
+            }
         }
         if !self.covers(row, col) {
             self.grow(row, col)?;
