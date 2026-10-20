@@ -103,7 +103,7 @@ enum Step {
     /// whole span in one go, so this is a list rather than a single cell.
     Cells(usize),
     /// A row the substream declares here, and the position after the record. Declaring a row is not
-    /// the same as the row holding nothing — its cells may follow.
+    /// the same as the row holding nothing ??its cells may follow.
     Row(u32, usize),
     /// The extent the sheet declares, and the position after the record.
     Extent(Extent, usize),
@@ -574,7 +574,7 @@ impl<RS: Read + Seek> Reader<RS> for Xls<RS> {
             Source::Compound(Box::new(cfb), Box::new(entry))
         } else {
             // A bare BIFF stream with no container is slurped whole, so the same ceiling the
-            // container paths apply has to be applied here too — otherwise this is the one way
+            // container paths apply has to be applied here too ??otherwise this is the one way
             // to make the reader allocate without bound.
             let mut buffer = Vec::new();
             let read = std::io::copy(&mut reader.take(MAX_ENTRY_BYTES + 1), &mut buffer)?;
@@ -1401,7 +1401,7 @@ mod tests {
 
         /// A sheet whose two cells sit at opposite corners of the grid BIFF can address.
         ///
-        /// The rectangle between them is 65536 by 256 — 537 MB of values — which is what the dense
+        /// The rectangle between them is 65536 by 256 ??537 MB of values ??which is what the dense
         /// read would have to hold and what streaming does not.
         pub fn workbook_stream_across_the_grid() -> Vec<u8> {
             let mut sheet = bof(0x0010);
@@ -1474,7 +1474,7 @@ mod tests {
             header[0x38..0x3C].copy_from_slice(&4096u32.to_le_bytes());
             header[0x3C..0x40].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
             header[0x44..0x48].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
-            for slot in header[0x4C..0x200].chunks_exact_mut(4) {
+            for slot in header[0x4C..0x200].as_chunks_mut::<4>().0 {
                 slot.copy_from_slice(&FREESECT.to_le_bytes());
             }
             header[0x4C..0x50].copy_from_slice(&0u32.to_le_bytes());
@@ -1585,7 +1585,7 @@ mod tests {
     }
 
     /// A window works on this format too, which it does by reading rows and placing the ones the
-    /// window holds — the same shape as the streaming read, so the two cannot drift apart.
+    /// window holds ??the same shape as the streaming read, so the two cannot drift apart.
     #[test]
     fn a_window_reads_a_legacy_sheet() {
         let mut workbook = open_fixture();

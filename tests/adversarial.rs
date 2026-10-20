@@ -394,7 +394,7 @@ fn a_compound_file_declaring_an_oversized_stream_is_refused() {
         h[0x38..0x3C].copy_from_slice(&4096u32.to_le_bytes());
         h[0x3C..0x40].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
         h[0x44..0x48].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
-        for slot in h[0x4C..0x200].chunks_exact_mut(4) {
+        for slot in h[0x4C..0x200].as_chunks_mut::<4>().0 {
             slot.copy_from_slice(&FREESECT.to_le_bytes());
         }
         h[0x4C..0x50].copy_from_slice(&0u32.to_le_bytes());

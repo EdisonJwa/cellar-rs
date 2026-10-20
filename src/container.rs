@@ -76,7 +76,7 @@ fn normalize_name(name: &str) -> String {
 /// Every reader of a part goes through here, so the whole-part read and the early-stopping one are
 /// bounded the same way rather than each having to remember. The bound is on the bytes actually
 /// produced rather than on the size the file declares, because a crafted header can understate
-/// that — which is how a few kilobytes of archive become hundreds of gigabytes of expansion.
+/// that ??which is how a few kilobytes of archive become hundreds of gigabytes of expansion.
 ///
 /// Returns how many bytes this call added, zero at the end of the part, so a caller reading only a
 /// prefix can stop wherever it likes.
@@ -113,40 +113,6 @@ fn read_limited(reader: &mut impl Read, declared: u64) -> Result<Vec<u8>> {
     let mut buf = [0u8; 64 * 1024];
     while read_part(reader, &mut buf, &mut out, MAX_ENTRY_BYTES)? != 0 {}
     Ok(out)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{read_part, MAX_ENTRY_BYTES};
-    use std::io::Read;
-
-    /// The limit is on the bytes produced, so a part that declares little and yields much is
-    /// refused rather than allowed to grow without bound. Exercised with a small limit because the
-    /// real one is four gigabytes and reaching it would take four gigabytes.
-    #[test]
-    fn a_part_that_produces_more_than_its_limit_is_refused() {
-        let mut buf = [0u8; 8];
-        let mut out = Vec::new();
-
-        // A reader that would produce a byte forever if it were asked to.
-        let mut endless = std::io::repeat(b'x');
-        let error = loop {
-            if let Err(error) = read_part(&mut endless, &mut buf, &mut out, 32) {
-                break error;
-            }
-        };
-        assert!(
-            error.to_string().contains("byte limit"),
-            "expected the limit to be reported, got {error}"
-        );
-        assert_eq!(out.len(), 32, "exactly the limit should have been read");
-
-        // The same content fits when it is under the limit.
-        let mut small = std::io::repeat(b'x').take(32);
-        let mut fits = Vec::new();
-        while read_part(&mut small, &mut buf, &mut fits, MAX_ENTRY_BYTES).unwrap() != 0 {}
-        assert_eq!(fits.len(), 32);
-    }
 }
 
 /// A ZIP container, backed by `zipcore`.
@@ -360,4 +326,38 @@ pub(crate) fn read_head(reader: &mut impl Read, buf: &mut [u8]) -> Result<usize>
         }
     }
     Ok(filled)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{read_part, MAX_ENTRY_BYTES};
+    use std::io::Read;
+
+    /// The limit is on the bytes produced, so a part that declares little and yields much is
+    /// refused rather than allowed to grow without bound. Exercised with a small limit because the
+    /// real one is four gigabytes and reaching it would take four gigabytes.
+    #[test]
+    fn a_part_that_produces_more_than_its_limit_is_refused() {
+        let mut buf = [0u8; 8];
+        let mut out = Vec::new();
+
+        // A reader that would produce a byte forever if it were asked to.
+        let mut endless = std::io::repeat(b'x');
+        let error = loop {
+            if let Err(error) = read_part(&mut endless, &mut buf, &mut out, 32) {
+                break error;
+            }
+        };
+        assert!(
+            error.to_string().contains("byte limit"),
+            "expected the limit to be reported, got {error}"
+        );
+        assert_eq!(out.len(), 32, "exactly the limit should have been read");
+
+        // The same content fits when it is under the limit.
+        let mut small = std::io::repeat(b'x').take(32);
+        let mut fits = Vec::new();
+        while read_part(&mut small, &mut buf, &mut fits, MAX_ENTRY_BYTES).unwrap() != 0 {}
+        assert_eq!(fits.len(), 32);
+    }
 }

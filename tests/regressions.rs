@@ -171,7 +171,7 @@ fn ods_boolean_spellings_all_read_as_booleans() {
 /// A formula read must not depend on the shared string table.
 ///
 /// It used to load and parse that table unconditionally, so a damaged `sharedStrings.xml` failed
-/// a read that never needed it — and a workbook with millions of strings paid to inflate them.
+/// a read that never needed it ??and a workbook with millions of strings paid to inflate them.
 #[test]
 fn xlsx_formula_read_does_not_need_the_shared_strings() {
     let sheet = r#"<?xml version="1.0"?>
@@ -497,7 +497,7 @@ fn cfb_directory_hole_does_not_hide_the_workbook() {
     h[0x38..0x3C].copy_from_slice(&4096u32.to_le_bytes());
     h[0x3C..0x40].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
     h[0x44..0x48].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
-    for slot in h[0x4C..0x200].chunks_exact_mut(4) {
+    for slot in h[0x4C..0x200].as_chunks_mut::<4>().0 {
         slot.copy_from_slice(&FREESECT.to_le_bytes());
     }
     for i in 0..f {
@@ -533,8 +533,8 @@ fn cfb_directory_hole_does_not_hide_the_workbook() {
 
 /// A `DIMENSIONS` record appearing after cells must not discard them.
 ///
-/// The dense reader replaced its builder whenever it saw one, so a second `DIMENSIONS` — which
-/// BIFF permits anywhere in the substream — silently dropped the sheet's prefix.
+/// The dense reader replaced its builder whenever it saw one, so a second `DIMENSIONS` ??which
+/// BIFF permits anywhere in the substream ??silently dropped the sheet's prefix.
 #[test]
 fn xls_interior_dimensions_does_not_drop_cells() {
     const SECTOR: usize = 512;
@@ -644,7 +644,7 @@ fn xls_interior_dimensions_does_not_drop_cells() {
         h[0x38..0x3C].copy_from_slice(&4096u32.to_le_bytes());
         h[0x3C..0x40].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
         h[0x44..0x48].copy_from_slice(&ENDOFCHAIN.to_le_bytes());
-        for slot in h[0x4C..0x200].chunks_exact_mut(4) {
+        for slot in h[0x4C..0x200].as_chunks_mut::<4>().0 {
             slot.copy_from_slice(&FREESECT.to_le_bytes());
         }
         for i in 0..f {
