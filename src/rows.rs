@@ -138,6 +138,17 @@ impl<'a> SheetRows<'a> {
             None => return Ok(None),
         };
 
+        // `Row::get` binary-searches `columns` and indexes `values` with the result, so the two
+        // must be the same length or that index can fall outside `values`. Every source here
+        // pushes them in lockstep, but the invariant is the kind a new source could break
+        // silently, so it is checked rather than assumed: truncating both to the shorter length
+        // is the only reading of a mismatched row that cannot panic.
+        if self.columns.len() != self.values.len() {
+            let keep = self.columns.len().min(self.values.len());
+            self.columns.truncate(keep);
+            self.values.truncate(keep);
+        }
+
         // Rows promise ascending columns so that lookups can binary-search them. Every format
         // here writes them in order, so this costs one comparison pass; a file that does not gets
         // its row ordered rather than a silently broken lookup.
@@ -146,12 +157,15 @@ impl<'a> SheetRows<'a> {
             let values = std::mem::take(&mut self.values);
             let mut paired: Vec<(u32, Data)> = columns.into_iter().zip(values).collect();
             paired.sort_by_key(|(column, _)| *column);
+            self.columns.reserve(paired.len());
+            self.values.reserve(paired.len());
             for (column, value) in paired {
                 self.columns.push(column);
                 self.values.push(value);
             }
         }
 
+        debug_assert_eq!(self.columns.len(), self.values.len());
         Ok(Some(Row::new(index, &self.columns, &self.values)))
     }
 }
@@ -370,5 +384,64 @@ mod tests {
         let mut rows = SheetRows::new(Fixed(vec![vec![(0, 1)]], 0));
         skip_header_row(&mut rows, HeaderRow::Row(99)).unwrap();
         assert!(rows.next_row().unwrap().is_none());
+    }
+
+    /// A row source that pushes fewer values than columns must not make `Row::get` index past
+    /// the end of `values`.
+    ///
+    /// `Row::get` binary-searches `columns` and uses the result to index `values`, so a source
+    /// that broke the lockstep would be a latent out-of-bounds. No source here does, which is
+    /// exactly why the guard is worth pinning: it protects a future one.
+    #[test]
+    fn a_row_with_uneven_columns_and_values_is_truncated_not_trusted() {
+        struct Uneven;
+
+        impl RowSource for Uneven {
+            fn next_row(
+                &mut self,
+                columns: &mut Vec<u32>,
+                values: &mut Vec<Data>,
+            ) -> Result<Option<u32>> {
+                columns.clear();
+                values.clear();
+                // Three columns, one value: the mismatch a buggy source would produce.
+                columns.extend([0, 5, 9]);
+                values.push(Data::Int(1));
+                Ok(Some(0))
+            }
+        }
+
+        let mut rows = SheetRows::new(Uneven);
+        let row = rows.next_row().unwrap().unwrap();
+        assert_eq!(row.len(), 1, "the row keeps only what it can pair");
+        assert_eq!(row.get(0), Some(&Data::Int(1)));
+        // The dropped columns must not be reachable, which is what would panic without the guard.
+        assert_eq!(row.get(5), None);
+        assert_eq!(row.get(9), None);
+    }
+
+    /// Values arriving without columns is the mirror case, and is also truncated.
+    #[test]
+    fn a_row_with_more_values_than_columns_is_truncated() {
+        struct Extra;
+
+        impl RowSource for Extra {
+            fn next_row(
+                &mut self,
+                columns: &mut Vec<u32>,
+                values: &mut Vec<Data>,
+            ) -> Result<Option<u32>> {
+                columns.clear();
+                values.clear();
+                columns.push(2);
+                values.extend([Data::Int(7), Data::Int(8), Data::Int(9)]);
+                Ok(Some(0))
+            }
+        }
+
+        let mut rows = SheetRows::new(Extra);
+        let row = rows.next_row().unwrap().unwrap();
+        assert_eq!(row.len(), 1);
+        assert_eq!(row.get(2), Some(&Data::Int(7)));
     }
 }

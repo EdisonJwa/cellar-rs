@@ -19,6 +19,14 @@ use std::io::{Read, Seek};
 const MAX_ROWS: u32 = 1_048_576;
 const MAX_COLS: u32 = 16_384;
 /// Ceiling on the cells one table may expand to before the range builder sees them.
+///
+/// This is the **dense** budget: it bounds the sparse list that `worksheet_range` builds before
+/// converting it to a rectangle. The streaming path does not use it, and deliberately so — it
+/// materialises nothing, so the only bound it needs is the width of a single row ([`MAX_COLS`],
+/// enforced in `parse_row`). A file whose table would exceed this limit is therefore refused by
+/// `worksheet_range` and read successfully by `worksheet_rows`. That is the intended difference
+/// between the two views, not an inconsistency between them: one asks for a rectangle, the other
+/// does not.
 const MAX_CELLS: usize = 16_777_216;
 
 /// A reader for OpenDocument spreadsheets.

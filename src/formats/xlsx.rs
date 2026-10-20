@@ -539,10 +539,27 @@ struct RowCursor {
 
 impl RowCursor {
     /// Begins a row, taking its index from `r` when it has one.
+    ///
+    /// The index is taken as written, because a cell's `<c r=...>` may name any row and the dense
+    /// and streaming readers must agree on where it landed. What is *not* taken is a row index
+    /// that moves backwards: `</row>` counting in the windowed reader assumes rows ascend, and a
+    /// sheet that repeats an earlier index would otherwise make a window stop short. A backwards
+    /// index is therefore clamped to the current one, so the row is read where the reader is
+    /// rather than where a malformed attribute claims.
     fn start_row(&mut self, reference: Option<&str>) {
-        self.row = match reference.and_then(|v| v.parse::<u32>().ok()) {
-            Some(r) if r >= 1 => r - 1,
-            _ => {
+        let declared = match reference.and_then(|v| v.parse::<u32>().ok()) {
+            Some(r) if r >= 1 => Some(r - 1),
+            _ => None,
+        };
+        let next = match declared {
+            Some(r) => {
+                if self.seen_row {
+                    r.max(self.row)
+                } else {
+                    r
+                }
+            }
+            None => {
                 if self.seen_row {
                     self.row.saturating_add(1)
                 } else {
@@ -550,11 +567,16 @@ impl RowCursor {
                 }
             }
         };
+        self.row = next;
         self.seen_row = true;
         self.next_col = 0;
     }
 
     /// Places a cell within the current row, taking its column from `r` when it has one.
+    ///
+    /// Columns are left as written. `SheetRows` sorts a row that arrives out of order, so a
+    /// producer that emits them unsorted still reads correctly, and clamping here would move a
+    /// cell away from the position its own reference names.
     fn place(&mut self, reference: Option<&str>) -> u32 {
         let column = reference
             .and_then(parse_cell_ref)

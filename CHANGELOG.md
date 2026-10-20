@@ -14,56 +14,103 @@ The first release. Read-only, and complete for the three formats it covers.
 
 ### Added
 
+**Reading**
+
 - **OOXML (`.xlsx`, `.xlsm`, `.xltx`, `.xlam`)**, **OpenDocument (`.ods`)** and **legacy BIFF8
-  (`.xls`)** reading, detected by content rather than extension.
-- **`Data`**, a cell value that distinguishes the cases a spreadsheet actually has: integer,
-  float, text, boolean, Excel serial date (with its epoch), ISO date and duration text, in-cell
-  error, and empty. Forgiving accessors (`as_f64`, `as_i64`, `as_string`, `as_date`, …) so callers
-  rarely match by hand.
+  (`.xls`)** support, detected by content rather than extension.
+- **`Data`**, a cell value that distinguishes the cases a spreadsheet actually has: integer, float,
+  text, boolean, Excel serial date with its epoch, ISO date and duration text, in-cell error, and
+  empty. Forgiving accessors (`as_f64`, `as_i64`, `as_string`, `as_date`, `as_duration`, …).
 - **`Range<T>`**, a dense rectangle that keeps absolute coordinates, so a cell keeps its identity
   across trimming and merging.
-- **`worksheet_rows`** — streaming reads that materialise nothing. A sheet whose cells sit at
-  `A1` and `XFD1048576` implies 17 billion cells; the dense path refuses it and this reads it in
+- **`worksheet_rows`** — streaming reads that materialise nothing. A sheet whose cells sit at `A1`
+  and `XFD1048576` implies 17 billion cells; the dense path refuses it and this reads it in
   constant space.
 - **`worksheet_range_ref`** — windowed reads that skip everything outside the window rather than
-  decoding and discarding it. In OOXML decompression stops once the window's rows have closed,
-  and that cut is verified against the parser instead of trusted.
+  decoding and discarding it. In OOXML decompression stops once the window's rows have closed, and
+  that cut is verified against the parser instead of trusted.
 - **`worksheet_formula`** — formula text, with shared formulas expanded per cell by shifting each
-  relative reference. `.xls` reports `Unsupported`, because BIFF stores compiled token streams.
+  relative reference.
 - **`worksheet_merged_regions`** — merged-cell regions, read from `<mergeCells>`, `MERGEDCELLS`
-  records, or `number-columns-spanned`/`number-rows-spanned`, depending on the format.
+  records, or `number-columns-spanned`/`number-rows-spanned` depending on the format.
 - **`sheet_visibility`** — visible, hidden or very hidden, per sheet.
 - **Defined names, sheet metadata, and header-row trimming** that keeps coordinates absolute.
-- **`serde` row deserialization** behind a feature, matching columns to struct fields by header
-  name so a struct works when the sheet's columns are reordered. The column plan is computed once
-  per range, not once per row.
-- **`codepage`** feature decoding compressed BIFF strings through `encoding_rs`, covering the
-  Windows pages (874, 1250–1258), the ISO-8859 pages, KOI8-R/U, IBM866 and Macintosh. Without it
-  the 0x80–0x9F band is read as Latin-1, which is wrong for exactly the characters Western
-  European text uses.
-- **`dates`** feature adding `chrono` conversions.
+
+**Features**
+
+- **`serde`** — row deserialization matching columns to struct fields by header name, so a struct
+  works when the sheet's columns are reordered. The column plan is computed once per range.
+- **`codepage`** — correct legacy `.xls` text via `encoding_rs`, covering the Windows pages (874,
+  1250–1258), the ISO-8859 pages, KOI8-R/U, IBM866 and Macintosh. Without it the `0x80`–`0x9F` band
+  is read as Latin-1, which is wrong for exactly the characters Western European text uses.
+- **`dates`** — `chrono` conversions.
+
+**Tooling**
+
+- `compare/` — a separate workspace measuring this crate against `calamine` on the same files, so
+  the README's claims can be re-derived rather than believed.
+- Six compiled examples covering every public entry point.
+- The README's samples are doc-tests, so a snippet that stops building fails the suite.
+
+### Fixed
+
+Found in review, each with a regression test carrying a note on why the input is dangerous:
+
+- **DIFAT extension sectors were parsed off by one.** Entry 0 was skipped and the next-DIFAT pointer
+  ingested as a FAT sector, leaving the allocation table one sector short. Every 512-byte-sector
+  workbook above roughly 6.8 MiB failed with "stream chain points outside the FAT".
+- **Compound-file directory slots were compacted during parsing.** Entries address one another by
+  slot index, so a single unused slot shifted every later index and could hide the workbook
+  entirely. Unused slots are now retained as placeholders.
+- **A mid-stream `DIMENSIONS` record discarded every cell decoded before it.** The builder was
+  replaced rather than hinted; it is now adopted only while still empty.
+- **`open_xls` accepted any bytes.** A non-BIFF input produced an empty, successful workbook. A
+  leading `BOF` record is now required.
+- **ODS repeat counts could overflow the row cursor.** Empty repeats are free, so ~120 KB of markup
+  drove the cursor to `u32::MAX` and the next repeat panicked in debug (and wrapped silently in
+  release), breaking the "never panics" guarantee. Out-of-grid repeats are refused instead.
+- **ODS `<text:list>` content was dropped**, because only direct `<text:p>` children were read.
+- **ODS booleans written as `1` or `TRUE` became empty**, because only literal `true`/`false` were
+  accepted.
+- **`worksheet_formula` swallowed a budget refusal** into an empty range, while the value read
+  reported it.
+- **A formula read depended on the shared string table.** A damaged `sharedStrings.xml` failed a
+  read that never needed it, and a workbook with millions of strings paid to inflate them.
+- **An error-typed cell with an empty value produced `Error(Unknown(""))`** instead of empty.
+- **Dense and streaming disagreed about an impossible row index.** The dense path refused; streaming
+  handed back an addressable one.
+- **A row source pushing uneven columns and values could index past the end of `values`.** The
+  invariant is now enforced rather than assumed.
 
 ### Security
 
+- **The cell budget counted `Data` slots but not string payloads.** A slot is 32 bytes whether
+  empty or owning a megabyte, so cells all naming one shared string passed the budget while
+  allocating far more heap than it allowed — a 49 KB file measured at 23 MB, and unbounded at a
+  larger shape. Text is now charged as it is stored, against a separate 256 MiB budget, and the
+  refusal lands before the allocation.
+- **`<text:s text:c="N"/>` could amplify without limit.** Each element was capped, the total per
+  cell was not: 656 bytes expanded to 40 MB. A per-cell text budget closes it.
+- **A `<dimension>` element could demand a gigabyte.** `A1:AF1048576` is about a hundred bytes
+  naming exactly the grid's 33.5 million cells. A declared extent now reserves at most 64 MiB, and
+  the buffer still grows to the true extent.
+- **`.xls` had no per-part ceiling.** The ZIP path bounded every entry at 4 GiB; the compound-file
+  path bounded nothing. It does now, and a stream whose chain ends before its declared size is
+  reported where it happens.
+- **The entity decoder was quadratic** on text full of stray ampersands. The scan is now bounded by
+  the longest name an entity can have.
+- **Header-row trimming copied the dense buffer**, doubling peak memory on exactly the large sheets
+  the builder exists to keep single-copy.
 - `unsafe` forbidden crate-wide.
-- No archive entry or compound-file stream exceeds 4 GiB, measured on the bytes produced rather
-  than a declared length that a crafted header can understate.
-- A cell's text is bounded at 1 MiB; without it, 656 bytes of `<text:s>` runs expanded to 40 MB.
-- A declared `<dimension>` reserves at most 64 MiB; without it a ~100-byte element demanded a 1 GiB
-  allocation.
-- Repeat counts are charged against a cell budget as each cell is produced, and a repeat that
-  would carry a row or column index past the grid is refused rather than saturated.
-- Every allocation table walk is bounded and cycle checked.
-- DTDs are skipped rather than resolved, so entity-expansion and external-entity attacks have
-  nothing to work with, and the entity decoder is linear rather than quadratic.
-- `tests/adversarial.rs` attacks the reader rather than testing it: truncation at every offset,
-  400 deterministic bit flips, 100,000-deep nesting, out-of-grid references, amplification, and
-  oversized declared sizes. Memory is measured with a counting allocator.
+- `tests/adversarial.rs` attacks the reader rather than testing it: truncation at every offset, 400
+  deterministic bit flips, 100,000-deep nesting, amplification, and oversized declared sizes, with
+  memory measured by a counting allocator.
 
 ### Notes
 
-- The archive container is `zipcore`, this project's own ZIP reader, behind one internal trait.
-  It is the only non-optional dependency, and it has no `unsafe` either.
-- `.ods` whole-sheet reads are slower than the OOXML path because the format declares no extent,
-  so the sheet is assembled through a sparse list and held twice while doing so. Measured, and
-  stated in the README rather than glossed over.
+- The archive container is `zipcore`, this project's own ZIP reader, behind one internal trait. It
+  is the only non-optional dependency, and it has no `unsafe` either.
+- `.ods` whole-sheet reads are slower than the OOXML path because the format declares no extent, so
+  the sheet is assembled through a sparse list and held twice while doing so. Measured, and stated
+  in the README rather than glossed over.
+- MSRV is **1.88**, which is where `slice::as_chunks` stabilised.
