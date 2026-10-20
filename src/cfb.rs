@@ -148,8 +148,8 @@ impl<RS: Read + Seek> Cfb<RS> {
         total_sectors: u64,
     ) -> Result<Vec<u32>> {
         let mut difat = Vec::new();
-        for chunk in header_difat.chunks_exact(4) {
-            let v = u32::from_le_bytes(chunk.try_into().unwrap());
+        for chunk in header_difat.as_chunks::<4>().0 {
+            let v = u32::from_le_bytes(*chunk);
             if v != FREESECT && v != ENDOFCHAIN {
                 difat.push(v);
             }
@@ -215,8 +215,8 @@ impl<RS: Read + Seek> Cfb<RS> {
                 break;
             }
             let bytes = self.read_sector(sector)?;
-            for chunk in bytes.chunks_exact(4) {
-                self.fat.push(u32::from_le_bytes(chunk.try_into().unwrap()));
+            for chunk in bytes.as_chunks::<4>().0 {
+                self.fat.push(u32::from_le_bytes(*chunk));
             }
         }
         Ok(())
@@ -229,8 +229,10 @@ impl<RS: Read + Seek> Cfb<RS> {
         }
         let bytes = self.read_fat_stream(first, u64::from(count) * self.sector_size as u64)?;
         self.mini_fat = bytes
-            .chunks_exact(4)
-            .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|c| u32::from_le_bytes(*c))
             .collect();
         Ok(())
     }
@@ -256,7 +258,7 @@ impl<RS: Read + Seek> Cfb<RS> {
                 return Err(Error::format("cyclic directory chain"));
             }
         }
-        for chunk in raw.chunks_exact(128) {
+        for chunk in raw.as_chunks::<128>().0 {
             let kind = chunk[0x42];
             if kind == 0 {
                 // An unused slot still occupies a position, and the indices depend on it.
@@ -274,8 +276,10 @@ impl<RS: Read + Seek> Cfb<RS> {
             let name_len = u16::from_le_bytes([chunk[0x40], chunk[0x41]]) as usize;
             let name = if (2..=64).contains(&name_len) {
                 let utf16: Vec<u16> = chunk[..name_len - 2]
-                    .chunks_exact(2)
-                    .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|c| u16::from_le_bytes(*c))
                     .collect();
                 // Trailing NULs occasionally pad short names.
                 let end = utf16.iter().position(|&c| c == 0).unwrap_or(utf16.len());

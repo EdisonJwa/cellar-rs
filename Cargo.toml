@@ -8,7 +8,6 @@ license = "MIT"
 keywords = ["excel", "ods", "xls", "xlsx", "spreadsheet"]
 categories = ["text-processing", "parsing", "encoding"]
 repository = "https://github.com/EdisonJwa/cellar-rs"
-homepage = "https://github.com/EdisonJwa/cellar-rs"
 documentation = "https://docs.rs/cellar"
 readme = "README.md"
 # The comparison harness is a separate workspace that exists to measure this crate against

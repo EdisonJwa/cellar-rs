@@ -36,6 +36,23 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
+  clippy-nightly:
+    name: clippy (nightly, advisory)
+    runs-on: ubuntu-latest
+    # A newer clippy invents lints the pinned toolchain has never heard of, so a change that is
+    # clean locally can fail CI with no way to reproduce it. (That happened: the released code
+    # tripped `chunks_exact_to_as_chunks`, which clippy 1.95 does not have.) Running the same
+    # command on nightly surfaces the drift while it is still a warning. Advisory on purpose, so
+    # it reports without gating.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
   test:
     name: test (${{ matrix.features }})
     runs-on: ${{ matrix.os }}
