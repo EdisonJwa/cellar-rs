@@ -9,7 +9,7 @@
 //! Findings are pinned against a counting allocator, because the difference between "bounded" and
 //! "bounded in the units that happen to be counted" is invisible to any other kind of test.
 
-use cellar::Reader;
+use gridxcel_rs::Reader;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -123,7 +123,7 @@ fn a_sheet_whose_text_exceeds_the_payload_budget_is_refused() {
     let file_len = bytes.len();
 
     reset();
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let result = wb.worksheet_range("S");
     let allocated = peak();
 
@@ -155,7 +155,7 @@ fn text_within_the_payload_budget_still_reads() {
     let bytes = string_heavy_workbook(rows, cols, text_len);
 
     reset();
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = wb.worksheet_range("S").unwrap();
 
     assert_eq!(
@@ -184,7 +184,7 @@ fn real_fixtures_stay_within_the_payload_budget() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/data")
             .join(name);
-        let mut wb = cellar::open_workbook(&path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(&path).unwrap();
         let mut total = 0usize;
         for sheet in wb.sheet_names().to_vec() {
             let range = wb.worksheet_range(&sheet).unwrap();

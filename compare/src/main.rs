@@ -1,4 +1,4 @@
-//! Compares `cellar` against `calamine` on the same files and the same operations.
+//! Compares `gridxcel-rs` against `calamine` on the same files and the same operations.
 //!
 //! Both are pure-Rust spreadsheet readers with the same interface shape, so this measures what a
 //! caller actually does: open a workbook, read a whole sheet, stream it, and read one window.
@@ -33,25 +33,25 @@ fn ms(d: Duration) -> f64 {
     d.as_secs_f64() * 1000.0
 }
 
-fn run_cellar(path: &std::path::Path, sheet: &str) -> Vec<(&'static str, Duration, u64)> {
-    use cellar::Reader;
+fn run_candidate(path: &std::path::Path, sheet: &str) -> Vec<(&'static str, Duration, u64)> {
+    use gridxcel_rs::Reader;
     let mut out = Vec::new();
 
     let (e, c) = best_of(25, || {
-        let mut wb = cellar::open_workbook(path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(path).unwrap();
         std::hint::black_box(wb.sheet_names().len());
         std::hint::black_box(wb.worksheet_range(sheet).unwrap().used_cell_count() as u64)
     });
     out.push(("open + first sheet", e, c));
 
     let (e, c) = best_of(20, || {
-        let mut wb = cellar::open_workbook(path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(path).unwrap();
         std::hint::black_box(wb.worksheet_range(sheet).unwrap().as_slice().len() as u64)
     });
     out.push(("read whole sheet", e, c));
 
     let (e, c) = best_of(20, || {
-        let mut wb = cellar::open_workbook(path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(path).unwrap();
         let mut rows = wb.worksheet_rows(sheet).unwrap();
         let mut n = 0u64;
         while let Some(row) = rows.next_row().unwrap() {
@@ -62,7 +62,7 @@ fn run_cellar(path: &std::path::Path, sheet: &str) -> Vec<(&'static str, Duratio
     out.push(("stream all rows", e, c));
 
     let (e, c) = best_of(25, || {
-        let mut wb = cellar::open_workbook(path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(path).unwrap();
         std::hint::black_box(wb.worksheet_range_ref(sheet, "B2:F40").unwrap().as_slice().len() as u64)
     });
     out.push(("read window B2:F40", e, c));
@@ -133,27 +133,27 @@ fn run_calamine(path: &std::path::Path, sheet: &str) -> Result<Vec<(&'static str
 fn compare(label: &str, path: &std::path::Path, sheet: &str) {
     println!("=== {label}");
 
-    let ours = run_cellar(path, sheet);
+    let ours = run_candidate(path, sheet);
     let theirs = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         run_calamine(path, sheet)
     })) {
         Ok(Ok(v)) => v,
         Ok(Err(e)) => {
-            println!("  cellar reads this file; calamine fails: {e}\n");
+            println!("  gridxcel-rs reads this file; calamine fails: {e}\n");
             return;
         }
         Err(_) => {
-            println!("  cellar reads this file; calamine panics on it\n");
+            println!("  gridxcel-rs reads this file; calamine panics on it\n");
             return;
         }
     };
 
     println!(
         "  {:<24} {:>11} {:>11} {:>9}",
-        "operation", "cellar", "calamine", "ratio"
+        "operation", "gridxcel-rs", "calamine", "ratio"
     );
     for (i, a) in ours.iter().enumerate() {
-        // The last calamine row is its materialise-only measurement and has no cellar
+        // The last calamine row is its materialise-only measurement and has no gridxcel-rs
         // counterpart, so it is printed on its own rather than paired with something else.
         let b = theirs.get(i);
         match b {
@@ -178,7 +178,7 @@ fn compare(label: &str, path: &std::path::Path, sheet: &str) {
     }
     if let Some(extra) = theirs.get(ours.len()) {
         println!(
-            "  {:<24} {:>22.3} ms   (cellar has no equivalent: it never materialises)",
+            "  {:<24} {:>22.3} ms   (gridxcel-rs never materialises: it never materialises)",
             extra.0,
             ms(extra.1)
         );
@@ -191,11 +191,11 @@ fn main() {
     // reliably writable on every platform this runs on.
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/fixtures");
     std::fs::create_dir_all(&dir).unwrap();
-    let xlsx = dir.join("cellar-compare.xlsx");
-    let ods = dir.join("cellar-compare.ods");
+    let xlsx = dir.join("gridxcel-compare.xlsx");
+    let ods = dir.join("gridxcel-compare.ods");
     let shipped_ods = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../tests/data/sample.ods");
-    let conforming_ods = dir.join("cellar-compare-shipped.ods");
+    let conforming_ods = dir.join("gridxcel-compare-shipped.ods");
     let real_xlsx = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../tests/data/chanora.xlsx");
 
@@ -213,7 +213,7 @@ fn main() {
 
     let cells = fixtures::ROWS as u64 * fixtures::COLS as u64;
     println!(
-        "cellar vs calamine - best of N, release build\n\
+        "gridxcel-rs vs calamine - best of N, release build\n\
          synthetic sheet: {} x {} = {cells} numeric cells\n",
         fixtures::ROWS,
         fixtures::COLS
@@ -228,12 +228,12 @@ fn main() {
     // Recorded separately: the committed fixture is a real example of a Windows-produced
     // archive with non-conforming entry names.
     println!("=== shipped sample.ods (as committed, backslash entry names)");
-    let cellar_ok = {
-        use cellar::Reader;
-        let mut wb = cellar::open_workbook(&shipped_ods).unwrap();
+    let candidate_ok = {
+        use gridxcel_rs::Reader;
+        let mut wb = gridxcel_rs::open_workbook(&shipped_ods).unwrap();
         wb.worksheet_range("Sheet1").is_ok()
     };
-    println!("  cellar reads it: {cellar_ok}");
+    println!("  gridxcel-rs reads it: {candidate_ok}");
     match std::panic::catch_unwind(|| run_calamine(&shipped_ods, "Sheet1")) {
         Ok(Ok(_)) => println!("  calamine reads it too"),
         Ok(Err(e)) => println!("  calamine fails: {e}"),

@@ -5,7 +5,7 @@
 //! large cell: 1 MB of ampersands became ~10^12 byte comparisons. The scan is now bounded by the
 //! longest name an entity can have.
 
-use cellar::Reader;
+use gridxcel_rs::Reader;
 
 fn ods_package(content: &str) -> Vec<u8> {
     let stored = zipcore::FileOptions::stored();
@@ -35,7 +35,7 @@ fn content_with(text: &str) -> String {
 
 fn cell_text(text: &str) -> String {
     let bytes = ods_package(&content_with(text));
-    let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = wb.worksheet_range("S").unwrap();
     range
         .get((0, 0))
@@ -46,7 +46,7 @@ fn cell_text(text: &str) -> String {
 fn time_ampersands(n: usize) -> std::time::Duration {
     let text = "&".repeat(n);
     let bytes = ods_package(&content_with(&text));
-    let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let start = std::time::Instant::now();
     let range = wb.worksheet_range("S").unwrap();
     let elapsed = start.elapsed();

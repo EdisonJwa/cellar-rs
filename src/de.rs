@@ -397,7 +397,7 @@ impl<'de> de::Deserializer<'de> for StringDeserializer {
 /// Configures how a range is turned into a stream of records.
 ///
 /// ```
-/// use cellar::{Data, Range, RangeDeserializerBuilder};
+/// use gridxcel_rs::{Data, Range, RangeDeserializerBuilder};
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -406,7 +406,7 @@ impl<'de> de::Deserializer<'de> for StringDeserializer {
 ///     value: f64,
 /// }
 ///
-/// # fn main() -> Result<(), cellar::Error> {
+/// # fn main() -> Result<(), gridxcel_rs::Error> {
 /// let range = Range::from_sparse(vec![
 ///     (0, 0, Data::String("name".into())),
 ///     (0, 1, Data::String("value".into())),

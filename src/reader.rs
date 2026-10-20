@@ -217,8 +217,8 @@ where
     /// Reads one rectangular window of a sheet, as an A1-style range reference.
     ///
     /// ```no_run
-    /// # use cellar::{open_workbook, Reader};
-    /// # fn main() -> Result<(), cellar::Error> {
+    /// # use gridxcel_rs::{open_workbook, Reader};
+    /// # fn main() -> Result<(), gridxcel_rs::Error> {
     /// let mut workbook = open_workbook("huge.xlsx")?;
     /// // Only this window is materialised, and only the rows it needs are decoded.
     /// let totals = workbook.worksheet_range_ref("Sheet1", "B2:D10")?;

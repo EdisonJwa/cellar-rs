@@ -10,9 +10,9 @@
 //! that hold something, so a single value in column 16000 costs one entry rather than 16001.
 //!
 //! ```no_run
-//! use cellar::{open_workbook, Reader};
+//! use gridxcel_rs::{open_workbook, Reader};
 //!
-//! # fn main() -> Result<(), cellar::Error> {
+//! # fn main() -> Result<(), gridxcel_rs::Error> {
 //! let mut workbook = open_workbook("huge.xlsx")?;
 //! let mut rows = workbook.worksheet_rows("Sheet1")?;
 //! while let Some(row) = rows.next_row()? {

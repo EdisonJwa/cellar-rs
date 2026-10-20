@@ -6,7 +6,7 @@
 
 mod common;
 
-use cellar::{open_workbook, Data, Error, Reader, Sheets};
+use gridxcel_rs::{open_workbook, Data, Error, Reader, Sheets};
 use std::io::{BufReader, Write};
 use std::path::PathBuf;
 
@@ -74,7 +74,7 @@ fn streaming_agrees_on_ods_too() {
 /// A row the file declares with no values is still a row, and carries its own index.
 #[test]
 fn blank_rows_are_yielded_with_their_index() {
-    let path = crate::common::scratch_file("cellar-blank-row.xlsx");
+    let path = crate::common::scratch_file("gridxcel-blank-row.xlsx");
     let sheet = r#"<?xml version="1.0"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <sheetData>
@@ -165,7 +165,7 @@ fn write_sparse_workbook(path: &std::path::Path) {
 /// The point of the streaming API: reading a sheet the dense path cannot represent.
 #[test]
 fn a_sheet_too_large_to_materialise_still_streams() {
-    let path = crate::common::scratch_file("cellar-sparse-streaming.xlsx");
+    let path = crate::common::scratch_file("gridxcel-sparse-streaming.xlsx");
     write_sparse_workbook(&path);
 
     let mut workbook = open_workbook(&path).unwrap();
@@ -197,7 +197,7 @@ fn streaming_honours_the_header_row() {
     let first = streamed(&mut workbook, "Summary")[0].clone();
     assert_eq!(first.2, Data::String("License".into()));
 
-    workbook.with_header_row(cellar::HeaderRow::Row(2));
+    workbook.with_header_row(gridxcel_rs::HeaderRow::Row(2));
     let shifted = streamed(&mut workbook, "Summary");
     assert_eq!(
         shifted[0].2,
@@ -290,7 +290,7 @@ fn write_sheet(path: &std::path::Path, body: &str, method: zip::CompressionMetho
 /// cut is checked against the parser, and a part that disagrees is taken whole.
 #[test]
 fn a_part_listing_its_rows_out_of_order_is_not_cut_short() {
-    let path = crate::common::scratch_file("cellar-repeated-rows.xlsx");
+    let path = crate::common::scratch_file("gridxcel-repeated-rows.xlsx");
     let mut body = String::from(
         r#"<?xml version="1.0"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -324,7 +324,7 @@ fn a_part_listing_its_rows_out_of_order_is_not_cut_short() {
 /// cut is confirmed against the parser, which knows a comment when it reads one.
 #[test]
 fn a_comment_that_looks_like_a_row_close_does_not_truncate_the_sheet() {
-    let path = crate::common::scratch_file("cellar-comment-rows.xlsx");
+    let path = crate::common::scratch_file("gridxcel-comment-rows.xlsx");
     let mut body = String::from(
         r#"<?xml version="1.0"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -363,7 +363,7 @@ fn a_comment_that_looks_like_a_row_close_does_not_truncate_the_sheet() {
 /// simply take the part whole and still be right.
 #[test]
 fn a_sheet_of_self_closing_rows_still_reads_its_window() {
-    let path = crate::common::scratch_file("cellar-self-closing-rows.xlsx");
+    let path = crate::common::scratch_file("gridxcel-self-closing-rows.xlsx");
     let body = r#"<?xml version="1.0"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <dimension ref="A1:A5"/>
@@ -398,7 +398,7 @@ fn a_sheet_of_self_closing_rows_still_reads_its_window() {
 fn a_deflated_part_stops_early_and_can_be_read_again() {
     const ROWS: u32 = 300;
     const COLS: u32 = 20;
-    let path = crate::common::scratch_file("cellar-deflated-window.xlsx");
+    let path = crate::common::scratch_file("gridxcel-deflated-window.xlsx");
 
     let mut body = String::from(
         r#"<?xml version="1.0"?>
@@ -411,7 +411,7 @@ fn a_deflated_part_stops_early_and_can_be_read_again() {
         for col in 0..COLS {
             body.push_str(&format!(
                 r#"<c r="{}{row}"><v>{}</v></c>"#,
-                cellar::refs::col_to_letters(col),
+                gridxcel_rs::refs::col_to_letters(col),
                 row * COLS + col
             ));
         }
@@ -463,7 +463,7 @@ fn a_bad_window_reference_is_rejected() {
 /// leaves the rest alone.
 #[test]
 fn a_window_reads_from_a_sheet_that_cannot_be_materialised() {
-    let path = crate::common::scratch_file("cellar-window-sparse.xlsx");
+    let path = crate::common::scratch_file("gridxcel-window-sparse.xlsx");
     write_sparse_workbook(&path);
 
     let mut workbook = open_workbook(&path).unwrap();
@@ -488,7 +488,7 @@ fn the_header_setting_does_not_move_a_window() {
     let mut workbook = open_workbook(fixture("chanora.xlsx")).unwrap();
     let plain = workbook.worksheet_range_ref("Summary", "A1:B2").unwrap();
 
-    workbook.with_header_row(cellar::HeaderRow::Row(3));
+    workbook.with_header_row(gridxcel_rs::HeaderRow::Row(3));
     let shifted = workbook.worksheet_range_ref("Summary", "A1:B2").unwrap();
     assert_eq!(plain, shifted);
 }

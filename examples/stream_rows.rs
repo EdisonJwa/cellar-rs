@@ -10,7 +10,7 @@
 //! cargo run --example stream_rows -- tests/data/chanora.xlsx Identifications
 //! ```
 
-use cellar::{open_workbook, Reader};
+use gridxcel_rs::{open_workbook, Reader};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);

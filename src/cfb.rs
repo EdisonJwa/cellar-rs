@@ -52,6 +52,12 @@ pub(crate) struct Cfb<RS> {
     /// The pool that small streams are carved out of.
     mini_stream: Vec<u8>,
     mini_cutoff: u32,
+    /// Sectors the file actually holds, the bound every chain walk is held to.
+    ///
+    /// A walk bounded only by the length of the allocation table can iterate about `file_len/4`
+    /// times, appending a whole sector each time — a two-sector cycle in a 0.46 MB file reached an
+    /// 807 MB buffer before the cycle was noticed. The file's own length is the honest bound.
+    total_sectors: u64,
     /// Normalised name to directory index, for lookups.
     index: HashSet<(String, u8)>,
 }
@@ -105,6 +111,7 @@ impl<RS: Read + Seek> Cfb<RS> {
             dir: Vec::new(),
             mini_stream: Vec::new(),
             mini_cutoff: if mini_cutoff == 0 { 4096 } else { mini_cutoff },
+            total_sectors,
             index: HashSet::new(),
         };
 
@@ -254,7 +261,9 @@ impl<RS: Read + Seek> Cfb<RS> {
                 .get(sector as usize)
                 .ok_or_else(|| Error::format("directory chain points outside the FAT"))?;
             steps += 1;
-            if steps > self.fat.len() + 1 {
+            // Bounded by the file, not by the allocation table: a cycle can be revisited many
+            // times before a table-length bound trips, and each visit appends a sector.
+            if steps as u64 > self.total_sectors + 1 {
                 return Err(Error::format("cyclic directory chain"));
             }
         }
@@ -346,7 +355,10 @@ impl<RS: Read + Seek> Cfb<RS> {
                 .get(sector as usize)
                 .ok_or_else(|| Error::format("stream chain points outside the FAT"))?;
             steps += 1;
-            if steps > fat.len() + 1 {
+            // Bounded by the file as well as the table: a chain cannot legitimately be longer
+            // than the sectors the file holds, and a cycle would otherwise spin until the table
+            // length is reached.
+            if steps as u64 > self.total_sectors + 1 || steps > fat.len() + 1 {
                 return Err(Error::format("cyclic stream chain"));
             }
         }

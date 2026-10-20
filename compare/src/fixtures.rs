@@ -116,7 +116,7 @@ pub fn write_xlsx(path: &std::path::Path) {
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 </Types>"#;
     // The package-level relationship is what a strict reader follows to find the workbook.
-    // `cellar` resolves the conventional path directly, which is why it needs nothing here.
+    // `gridxcel-rs` resolves the conventional path directly, which is why it needs nothing here.
     let package_rels = r#"<?xml version="1.0"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>

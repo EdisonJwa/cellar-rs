@@ -25,7 +25,7 @@
 //! the sheet's whole bounding rectangle.
 //!
 //! ```
-//! use cellar::{open_workbook, Reader};
+//! use gridxcel_rs::{open_workbook, Reader};
 //!
 //! let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
 //! for name in workbook.sheet_names().to_vec() {
@@ -39,7 +39,7 @@
 //!         println!();
 //!     }
 //! }
-//! # Ok::<(), cellar::Error>(())
+//! # Ok::<(), gridxcel_rs::Error>(())
 //! ```
 //!
 //! # The two other shapes
@@ -49,26 +49,26 @@
 //! rectangle would be the problem.
 //!
 //! ```
-//! use cellar::{open_workbook, Reader};
+//! use gridxcel_rs::{open_workbook, Reader};
 //!
 //! let mut workbook = open_workbook("tests/data/sample.ods")?;
 //! let mut rows = workbook.worksheet_rows("Sheet1")?;
 //! while let Some(row) = rows.next_row()? {
 //!     println!("row {}: {} cell(s)", row.index(), row.len());
 //! }
-//! # Ok::<(), cellar::Error>(())
+//! # Ok::<(), gridxcel_rs::Error>(())
 //! ```
 //!
 //! [`Reader::worksheet_range_ref`] returns exactly one rectangle, and in OOXML stops decompressing
 //! once the window's rows have closed — so its cost is the window rather than the sheet.
 //!
 //! ```
-//! use cellar::{open_workbook, Reader};
+//! use gridxcel_rs::{open_workbook, Reader};
 //!
 //! let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
 //! let window = workbook.worksheet_range_ref("Identifications", "B2:F40")?;
 //! assert_eq!(window.get_size(), (39, 5));
-//! # Ok::<(), cellar::Error>(())
+//! # Ok::<(), gridxcel_rs::Error>(())
 //! ```
 //!
 //! # Cell values
@@ -78,7 +78,7 @@
 //! error, and empty. Forgiving accessors mean callers rarely match by hand.
 //!
 //! ```
-//! use cellar::Data;
+//! use gridxcel_rs::Data;
 //!
 //! let value = Data::Float(2.5);
 //! assert_eq!(value.as_f64(), Some(2.5));
@@ -92,14 +92,14 @@
 //! Failures are typed, and a malformed file never panics.
 //!
 //! ```
-//! use cellar::{open_workbook, Reader};
+//! use gridxcel_rs::{open_workbook, Reader};
 //!
 //! let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
 //! match workbook.worksheet_range("No Such Sheet") {
-//!     Err(cellar::Error::NotFound(name)) => println!("no sheet called {name}"),
+//!     Err(gridxcel_rs::Error::NotFound(name)) => println!("no sheet called {name}"),
 //!     _ => unreachable!(),
 //! }
-//! # Ok::<(), cellar::Error>(())
+//! # Ok::<(), gridxcel_rs::Error>(())
 //! ```
 //!
 //! # Design
@@ -152,7 +152,7 @@ pub mod readme_examples {
     /// Read a sheet: open, list, iterate.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     ///
@@ -160,14 +160,14 @@ pub mod readme_examples {
     ///     let range = workbook.worksheet_range(&name)?;
     ///     assert!(range.get_size().0 > 0 || range.is_empty());
     /// }
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct ReadASheet;
 
     /// Cell values and their forgiving accessors.
     ///
     /// ```
-    /// use cellar::{CellError, Data, ExcelDateTime};
+    /// use gridxcel_rs::{CellError, Data, ExcelDateTime};
     ///
     /// let value = Data::Float(2.5);
     /// assert_eq!(value.as_f64(), Some(2.5));
@@ -190,7 +190,7 @@ pub mod readme_examples {
     /// Dates carry their epoch, so a 1904 workbook is never misread as 1900.
     ///
     /// ```
-    /// use cellar::ExcelDateTime;
+    /// use gridxcel_rs::ExcelDateTime;
     ///
     /// let dt = ExcelDateTime::new(45321.5, false);
     /// assert_eq!(dt.to_ymd_hms().unwrap().to_string(), "2024-01-30 12:00:00");
@@ -201,7 +201,7 @@ pub mod readme_examples {
     /// Stream a sheet's rows without materialising it.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/sample.ods")?;
     /// let mut rows = workbook.worksheet_rows("Sheet1")?;
@@ -213,54 +213,54 @@ pub mod readme_examples {
     ///     }
     /// }
     /// assert!(seen > 0);
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct StreamRows;
 
     /// Read one region; its shape follows the reference.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     /// let totals = workbook.worksheet_range_ref("Identifications", "B2:F40")?;
     /// assert_eq!(totals.get_size(), (39, 5));
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct ReadRegion;
 
     /// Merged regions, whose corners are inclusive.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     /// for region in workbook.worksheet_merged_regions("Identifications")? {
     ///     assert!(region.rows() >= 1 && region.columns() >= 1);
     ///     assert!(region.start.0 <= region.end.0 && region.start.1 <= region.end.1);
     /// }
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct MergedCells;
 
     /// Sheet visibility, per sheet.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     /// for index in 0..workbook.sheet_names().len() {
     ///     let visibility = workbook.sheet_visibility(index);
     ///     let _ = visibility.is_visible();
     /// }
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct SheetVisibilityOf;
 
     /// Sheet metadata and lookup by position.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     /// let names = workbook.sheet_names().to_vec();
@@ -268,30 +268,30 @@ pub mod readme_examples {
     /// assert_eq!(workbook.sheet_index(&names[0]), Some(0));
     /// assert!(workbook.worksheet_range_at(0).is_ok());
     /// let _ = workbook.defined_names();
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct SheetMetadata;
 
     /// Formulas are read separately from values.
     ///
     /// ```
-    /// use cellar::{open_workbook, Reader};
+    /// use gridxcel_rs::{open_workbook, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/sample.ods")?;
     /// let _values = workbook.worksheet_range("Sheet1")?;
     /// let formulas = workbook.worksheet_formula("Sheet1")?;
     /// assert!(formulas.used_cell_count() > 0);
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct Formulas;
 
     /// Error handling by kind.
     ///
     /// ```
-    /// use cellar::{Error, Reader};
+    /// use gridxcel_rs::{Error, Reader};
     ///
     /// // A missing sheet is a caller error, not corruption.
-    /// let mut workbook = cellar::open_workbook("tests/data/chanora.xlsx")?;
+    /// let mut workbook = gridxcel_rs::open_workbook("tests/data/chanora.xlsx")?;
     /// match workbook.worksheet_range("No Such Sheet") {
     ///     Err(Error::NotFound(_)) => {}
     ///     other => panic!("expected NotFound, got {other:?}"),
@@ -299,24 +299,24 @@ pub mod readme_examples {
     ///
     /// // Bytes that are not a spreadsheet are corruption, and say so.
     /// let junk = std::io::Cursor::new(b"not a workbook".to_vec());
-    /// match cellar::open_workbook_auto_from_rs(junk) {
+    /// match gridxcel_rs::open_workbook_auto_from_rs(junk) {
     ///     Err(e) => assert!(e.is_corrupt()),
     ///     Ok(_) => panic!("junk must not open"),
     /// }
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct ErrorHandling;
 
     /// Header-row trimming keeps coordinates absolute.
     ///
     /// ```
-    /// use cellar::{open_workbook, HeaderRow, Reader};
+    /// use gridxcel_rs::{open_workbook, HeaderRow, Reader};
     ///
     /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
     /// workbook.with_header_row(HeaderRow::Row(2));
     /// let range = workbook.worksheet_range("Summary")?;
     /// assert_eq!(range.start(), (1, 0));
-    /// # Ok::<(), cellar::Error>(())
+    /// # Ok::<(), gridxcel_rs::Error>(())
     /// ```
     pub struct HeaderRowTrim;
 
@@ -325,7 +325,7 @@ pub mod readme_examples {
     /// ```
     /// # #[cfg(feature = "serde")]
     /// # {
-    /// use cellar::{open_workbook, RangeDeserializerBuilder, Reader};
+    /// use gridxcel_rs::{open_workbook, RangeDeserializerBuilder, Reader};
     /// use serde::Deserialize;
     ///
     /// #[derive(Deserialize)]

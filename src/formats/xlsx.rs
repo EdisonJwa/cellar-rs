@@ -1066,6 +1066,10 @@ fn expand_shared_formulas(records: &[(u32, u32, FormulaRecord)]) -> Vec<(u32, u3
     }
 
     let mut out = Vec::with_capacity(records.len());
+    // Each member gets its own String, so a master stored once becomes N copies. That is
+    // payload growth the cell budget cannot see — it counts slots — so it is charged here, the
+    // same way SheetBuilder charges cell text.
+    let mut payload: u64 = 0;
     for (row, col, record) in records {
         let text = match record.kind.as_str() {
             "shared" if record.text.is_empty() => match record.si.and_then(|si| masters.get(&si)) {
@@ -1079,6 +1083,13 @@ fn expand_shared_formulas(records: &[(u32, u32, FormulaRecord)]) -> Vec<(u32, u3
             _ => record.text.clone(),
         };
         if !text.is_empty() {
+            payload = payload.saturating_add(text.len() as u64);
+            if payload > crate::range::MAX_PAYLOAD_BYTES {
+                // Return what has been built: the range builder applies the same ceiling, and a
+                // truncated formula set is a clearer outcome than an allocation the process
+                // cannot survive. Callers see the usual "too large" error from rom_sparse.
+                break;
+            }
             out.push((*row, *col, text));
         }
     }

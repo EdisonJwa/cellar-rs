@@ -9,7 +9,7 @@
 use crate::container::{Archive, ZipContainer};
 use crate::datatype::Data;
 use crate::error::{Error, Result};
-use crate::range::Range;
+use crate::range::{HeapPayload, Range, MAX_PAYLOAD_BYTES};
 use crate::reader::{apply_header_row, HeaderRow, MergedRegion, Reader, SheetVisibility};
 use crate::rows::{read_window, skip_header_row, RowSource, SheetRows, Window};
 use crate::xml::{local_name, Element, Event, XmlParser};
@@ -360,9 +360,19 @@ impl RowSource for OdsRows<'_> {
                             }
 
                             // A per-row budget, not a per-sheet one: nothing is materialised
-                            // here, so only the width of a single row needs bounding.
+                            // here, so only a single row needs bounding. That row can still be
+                            // enormous — the grid is 16,384 cells wide and a cell's text may be
+                            // a megabyte — so the payload budget applies to it as well, reset
+                            // for each row because the previous one has been handed out and
+                            // dropped by the time the next is read.
                             let mut remaining = MAX_CELLS;
-                            let (cells, _) = parse_row(&mut self.parser, false, &mut remaining)?;
+                            let mut row_payload = 0u64;
+                            let (cells, _) = parse_row(
+                                &mut self.parser,
+                                false,
+                                &mut remaining,
+                                &mut row_payload,
+                            )?;
 
                             if repeated == 1 {
                                 // The common case: hand the cells straight over.
@@ -459,6 +469,12 @@ fn parse_table(xml: &[u8], wanted: &str, want_formulas: bool) -> Result<ParsedTa
     let mut row: u32 = 0;
     // Cell budget left for this table, spent as cells are produced.
     let mut remaining = MAX_CELLS;
+    // Heap bytes of cell text produced so far, charged against `MAX_PAYLOAD_BYTES`.
+    //
+    // ODS builds its range through `Range::from_sparse` rather than `SheetBuilder`, so the
+    // payload budget that the builder enforces does not apply here unless it is applied
+    // explicitly. It has to be: a repeat count multiplies text as well as cells.
+    let mut payload_bytes: u64 = 0;
 
     loop {
         match parser.next_event()? {
@@ -495,8 +511,12 @@ fn parse_table(xml: &[u8], wanted: &str, want_formulas: bool) -> Result<ParsedTa
                                 "table {wanted:?} declares rows past the {MAX_ROWS} row limit"
                             )));
                         }
-                        let (cells, formulas) =
-                            parse_row(&mut parser, want_formulas, &mut remaining)?;
+                        let (cells, formulas) = parse_row(
+                            &mut parser,
+                            want_formulas,
+                            &mut remaining,
+                            &mut payload_bytes,
+                        )?;
                         // The row's own cells were charged as they were produced. Repeating the
                         // row multiplies them, so charge the extra copies before the loop below
                         // rather than after it, so the multiplication cannot allocate first.
@@ -508,6 +528,23 @@ fn parse_table(xml: &[u8], wanted: &str, want_formulas: bool) -> Result<ParsedTa
                                 "table {wanted:?} expands past the {MAX_CELLS} cell limit"
                             ))
                         })?;
+                        // Cell *count* is not the only thing a repeat multiplies: each copy clones
+                        // its cell's text, so a repeat is also a payload multiplier. Charging the
+                        // count alone let a 629-byte file expand to a gigabyte of text, because
+                        // this path never goes through `SheetBuilder`, which is where the payload
+                        // budget is otherwise applied.
+                        let payload: u64 = cells
+                            .iter()
+                            .map(|(_, value)| value.heap_payload())
+                            .sum::<u64>()
+                            .saturating_mul(u64::from(repeat));
+                        payload_bytes = payload_bytes.saturating_add(payload);
+                        if payload_bytes > MAX_PAYLOAD_BYTES {
+                            return Err(Error::format(format!(
+                                "table {wanted:?} cell text exceeds the \
+                                 {MAX_PAYLOAD_BYTES} byte limit"
+                            )));
+                        }
                         // A repeat of one is the ordinary case and needs no copy at all: the
                         // parsed cells are moved into place. Only a genuine repeat has to
                         // duplicate them, and that is the rarer shape.
@@ -564,6 +601,7 @@ fn parse_row(
     parser: &mut XmlParser<'_>,
     want_formulas: bool,
     remaining: &mut usize,
+    payload_bytes: &mut u64,
 ) -> Result<RowCells> {
     let mut cells = Vec::new();
     let mut formulas = Vec::new();
@@ -600,6 +638,16 @@ fn parse_row(
                         *remaining = remaining.checked_sub(count).ok_or_else(|| {
                             Error::format(format!("table expands past the {MAX_CELLS} cell limit"))
                         })?;
+                        // The column repeat clones this cell's text, so it multiplies payload as
+                        // well as cell count. Charged here because this is the loop that
+                        // duplicates, and a 64 KiB cell repeated 16,384 times is a gigabyte.
+                        let payload = value.heap_payload().saturating_mul(u64::from(repeat));
+                        *payload_bytes = payload_bytes.saturating_add(payload);
+                        if *payload_bytes > MAX_PAYLOAD_BYTES {
+                            return Err(Error::format(format!(
+                                "table cell text exceeds the {MAX_PAYLOAD_BYTES} byte limit"
+                            )));
+                        }
                         for c in start_col..start_col.saturating_add(repeat) {
                             cells.push((c, value.clone()));
                         }

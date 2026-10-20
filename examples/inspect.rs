@@ -10,7 +10,7 @@
 //! cargo run --example inspect -- tests/data/sample.ods
 //! ```
 
-use cellar::{open_workbook, Error, Reader};
+use gridxcel_rs::{open_workbook, Error, Reader};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args().nth(1).unwrap_or_else(|| {

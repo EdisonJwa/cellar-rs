@@ -1,6 +1,6 @@
 # Security policy
 
-`cellar` parses untrusted files. Every input is treated as hostile, and the failures that matter
+`gridxcel-rs` parses untrusted files. Every input is treated as hostile, and the failures that matter
 are the ones a crafted workbook can cause: a panic, an unbounded allocation, a hang, or data
 returned for something that should have been refused.
 
@@ -8,7 +8,7 @@ returned for something that should have been refused.
 
 **Open a private security advisory** on the repository rather than a public issue:
 
-<https://github.com/EdisonJwa/cellar-rs/security/advisories/new>
+<https://github.com/EdisonJwa/gridxcel-rs/security/advisories/new>
 
 Please include the file that triggers it if you can — a malformed workbook is usually small enough
 to attach. There is no bounty, but expect an initial response within a week.

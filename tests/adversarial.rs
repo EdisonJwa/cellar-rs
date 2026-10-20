@@ -7,7 +7,7 @@
 //! Memory is measured with a counting allocator, so "bounded" is a number rather than an
 //! intention.
 
-use cellar::Reader;
+use gridxcel_rs::Reader;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -128,7 +128,7 @@ fn ods_text_run_amplification_is_bounded() {
     let bytes = ods(&body);
     println!("compressed fixture: {} bytes", bytes.len());
     let text_len = attack("text:s amplification", move || {
-        let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
         wb.worksheet_range("S")
             .ok()
             .and_then(|r| r.get((0, 0)).and_then(|v| v.as_string()))
@@ -150,7 +150,7 @@ fn xlsx_dimension_does_not_force_a_huge_allocation() {
     let bytes = xlsx(&doc);
     println!("compressed fixture: {} bytes", bytes.len());
     let result = attack("huge declared dimension", move || {
-        let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
         wb.worksheet_range("S").map(|r| r.get_size())
     });
     println!("  result: {:?}", result.map_err(|e| e.to_string()));
@@ -176,7 +176,7 @@ fn deeply_nested_xml_does_not_overflow_the_stack() {
     );
     let bytes = xlsx(&doc);
     let _ = attack("100k nested elements", move || {
-        let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
         wb.worksheet_range("S").map(|r| r.get((0, 0)).cloned())
     });
 }
@@ -188,9 +188,9 @@ fn out_of_grid_cell_references_are_rejected() {
         let body = format!(r#"<row r="1"><c r="A{row}"><v>1</v></c></row>"#);
         let bytes = xlsx(&sheet(&body));
         let _ = attack(&format!("row {row}"), move || {
-            let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+            let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
             let dense = wb.worksheet_range("S").is_err();
-            let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new({
+            let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new({
                 let body = format!(r#"<row r="1"><c r="A{row}"><v>1</v></c></row>"#);
                 xlsx(&sheet(&body))
             }))
@@ -220,7 +220,7 @@ fn corrupt_archive_offsets_are_refused() {
         *byte ^= 0xFF;
     }
     let outcome = attack("corrupt EOCD", move || {
-        cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).is_err()
+        gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).is_err()
     });
     assert!(outcome, "a corrupt archive must not open");
 }
@@ -235,7 +235,7 @@ fn every_truncation_is_refused_without_panicking() {
     for cut in (0..full.len()).step_by(7) {
         let partial = full[..cut].to_vec();
         let result = std::panic::catch_unwind(move || {
-            let _ = cellar::open_xlsx_from_rs(std::io::Cursor::new(partial));
+            let _ = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(partial));
         });
         assert!(result.is_ok(), "truncating at {cut} panicked");
     }
@@ -258,7 +258,7 @@ fn bit_flips_are_refused_without_panicking() {
         let at = (seed >> 33) as usize % copy.len();
         copy[at] ^= 1 << ((seed >> 17) % 8);
         let result = std::panic::catch_unwind(move || {
-            let _ = cellar::open_xlsx_from_rs(std::io::Cursor::new(copy));
+            let _ = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(copy));
         });
         assert!(result.is_ok(), "a bit flip at {at} panicked");
     }
@@ -274,7 +274,7 @@ fn ods_repeat_multiplication_is_charged_before_allocating() {
     let bytes = ods(&body);
     println!("compressed fixture: {} bytes", bytes.len());
     let result = attack("row repeat amplification", move || {
-        let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
         wb.worksheet_range("S").map(|r| r.get_size())
     });
     println!("  result: {:?}", result.map_err(|e| e.to_string()));
@@ -289,7 +289,7 @@ fn ods_streaming_amplification_is_cheap() {
     );
     let bytes = ods(&body);
     let rows_read = attack("row repeat, streamed", move || {
-        let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
         // The cursor borrows the workbook, so the count is extracted inside the same scope and
         // the borrow is finished with before the workbook is dropped.
         let count = {
@@ -322,7 +322,7 @@ fn biff_overrunning_record_lengths_are_survivable() {
     bytes.extend_from_slice(&[0x09, 0x08, 0xFF, 0xFF]);
     bytes.extend_from_slice(&[0u8; 8]);
     let result = std::panic::catch_unwind(move || {
-        let _ = cellar::open_xls_from_rs(std::io::Cursor::new(bytes));
+        let _ = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(bytes));
     });
     assert!(result.is_ok(), "an overrunning BIFF record panicked");
 }
@@ -338,7 +338,7 @@ fn a_colossal_entry_count_is_refused() {
     bytes.extend_from_slice(&0xFFFFu16.to_le_bytes()); // entries total
     bytes.extend_from_slice(&[0u8; 4]);
     let outcome = std::panic::catch_unwind(move || {
-        let _ = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes));
+        let _ = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes));
     });
     assert!(outcome.is_ok(), "a colossal entry count panicked");
 }
@@ -412,7 +412,8 @@ fn a_compound_file_declaring_an_oversized_stream_is_refused() {
         bytes.resize(SECTOR * 4, 0);
 
         let outcome = std::panic::catch_unwind(move || {
-            cellar::open_xls_from_rs(std::io::Cursor::new(bytes)).map(|w| w.sheet_names().len())
+            gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(bytes))
+                .map(|w| w.sheet_names().len())
         });
         assert!(outcome.is_ok(), "a declared size of {declared} panicked");
         let result = outcome.unwrap();
@@ -440,7 +441,7 @@ fn degenerate_inputs_are_refused() {
         ("0xFF", vec![0xFFu8; 1024]),
     ] {
         let outcome = std::panic::catch_unwind(move || {
-            let _ = cellar::open_workbook_auto_from_rs(std::io::Cursor::new(bytes));
+            let _ = gridxcel_rs::open_workbook_auto_from_rs(std::io::Cursor::new(bytes));
         });
         assert!(outcome.is_ok(), "{label} panicked");
     }

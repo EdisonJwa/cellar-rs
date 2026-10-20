@@ -73,19 +73,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cellar"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "criterion",
- "encoding_rs",
- "serde",
- "tempfile",
- "zip",
- "zipcore",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -329,6 +316,19 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
+]
+
+[[package]]
+name = "gridxcel-rs"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "criterion",
+ "encoding_rs",
+ "serde",
+ "tempfile",
+ "zip",
+ "zipcore",
 ]
 
 [[package]]

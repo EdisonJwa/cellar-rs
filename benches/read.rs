@@ -2,8 +2,8 @@
 //!
 //! Run with `cargo bench`. The fixtures are the same real workbooks the tests use.
 
-use cellar::{open_workbook, Reader};
 use criterion::{criterion_group, criterion_main, Criterion};
+use gridxcel_rs::{open_workbook, Reader};
 use std::hint::black_box;
 
 fn fixture(name: &str) -> std::path::PathBuf {
@@ -66,7 +66,7 @@ fn bench_one_sheet(c: &mut Criterion) {
 /// `&str` field would not compile.
 #[cfg(feature = "serde")]
 fn bench_deserialize(c: &mut Criterion) {
-    use cellar::RangeDeserializerBuilder;
+    use gridxcel_rs::RangeDeserializerBuilder;
     use serde::Deserialize;
 
     #[derive(Deserialize)]
@@ -109,7 +109,7 @@ const WINDOW_COLS: u32 = 50;
 fn bench_window(c: &mut Criterion) {
     use std::io::Write;
 
-    let path = std::env::temp_dir().join("cellar-bench-window.xlsx");
+    let path = std::env::temp_dir().join("gridxcel-bench-window.xlsx");
     // Deflated, as a real workbook is. On a stored part there is no decompression to stop, so the
     // saving a window read makes would not show up at all.
     let options = zip::write::SimpleFileOptions::default()
@@ -134,7 +134,7 @@ fn bench_window(c: &mut Criterion) {
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <dimension ref="A1:{}{}"/>
 <sheetData>"#,
-                cellar::refs::col_to_letters(WINDOW_COLS - 1),
+                gridxcel_rs::refs::col_to_letters(WINDOW_COLS - 1),
                 WINDOW_ROWS
             )
             .as_bytes(),
@@ -149,7 +149,7 @@ fn bench_window(c: &mut Criterion) {
                 .write_all(
                     format!(
                         r#"<c r="{}{row}"><v>{}</v></c>"#,
-                        cellar::refs::col_to_letters(col),
+                        gridxcel_rs::refs::col_to_letters(col),
                         row * WINDOW_COLS + col
                     )
                     .as_bytes(),

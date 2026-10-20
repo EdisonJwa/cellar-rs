@@ -1,5 +1,5 @@
 [package]
-name = "cellar-fuzz"
+name = "gridxcel-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2021"
@@ -9,7 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-cellar = { path = ".." }
+gridxcel-rs = { path = ".." }
 
 # Detaches this crate from the parent package, so `cargo build` and `cargo test` at the root
 # never try to compile it. Fuzzing runs on nightly via `cargo +nightly fuzz run open`.

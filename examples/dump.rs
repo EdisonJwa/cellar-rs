@@ -2,7 +2,7 @@
 //!
 //! Run with `cargo run --example dump -- <file> [rows]`.
 
-use cellar::{open_workbook, HeaderRow, Reader};
+use gridxcel_rs::{open_workbook, HeaderRow, Reader};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = match std::env::args().nth(1) {

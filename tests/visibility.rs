@@ -5,7 +5,7 @@
 //! intended to present. Reporting every sheet as visible makes a workbook look like it holds
 //! content the user never sees.
 
-use cellar::{Reader, SheetVisibility};
+use gridxcel_rs::{Reader, SheetVisibility};
 
 fn ods_package(content: &str) -> Vec<u8> {
     let stored = zipcore::FileOptions::stored();
@@ -86,7 +86,7 @@ fn xlsx_reports_hidden_and_very_hidden_sheets() {
         ("Hidden1", Some("hidden")),
         ("VeryHidden1", Some("veryHidden")),
     ]);
-    let wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(wb.sheet_names(), ["Shown", "Hidden1", "VeryHidden1"]);
     assert_eq!(wb.sheet_visibility(0), SheetVisibility::Visible);
     assert_eq!(wb.sheet_visibility(1), SheetVisibility::Hidden);
@@ -102,7 +102,7 @@ fn ods_reports_hidden_tables() {
            <table:table table:name="Filtered" table:visibility="filter"/>
            <table:table table:name="Explicit" table:visibility="visible"/>"#,
     ));
-    let wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(
         wb.sheet_names(),
         ["Shown", "Hidden1", "Collapsed", "Filtered", "Explicit"]
@@ -120,7 +120,7 @@ fn ods_reports_hidden_tables() {
 #[test]
 fn an_out_of_range_index_is_visible() {
     let bytes = xlsx_with_states(&[("Only", None)]);
-    let wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(wb.sheet_visibility(99), SheetVisibility::Visible);
 }
 
@@ -131,7 +131,7 @@ fn real_fixtures_report_visibility() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/data")
             .join(name);
-        let wb = cellar::open_workbook(&path).unwrap();
+        let wb = gridxcel_rs::open_workbook(&path).unwrap();
         assert!(!wb.sheet_names().is_empty(), "{name}");
         for index in 0..wb.sheet_names().len() {
             // Any of the three states is acceptable; what matters is that it is answerable.
@@ -160,11 +160,11 @@ fn a_hidden_sheet_is_still_readable() {
         .unwrap();
     let bytes = w.finish().unwrap().into_inner();
 
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(wb.sheet_visibility(0), SheetVisibility::Hidden);
     assert_eq!(
         wb.worksheet_range("Secret").unwrap().get((0, 0)),
-        Some(&cellar::Data::Int(5)),
+        Some(&gridxcel_rs::Data::Int(5)),
         "a hidden sheet's data is still readable"
     );
 }

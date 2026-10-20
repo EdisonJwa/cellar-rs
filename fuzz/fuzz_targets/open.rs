@@ -8,13 +8,13 @@
 
 #![no_main]
 
-use cellar::Reader;
+use gridxcel_rs::Reader;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
     // Detection plus all three readers: the container, the XML tokenizer and the BIFF record
     // stream are all reachable from here.
-    let Ok(mut workbook) = cellar::open_workbook_auto_from_rs(std::io::Cursor::new(data.to_vec()))
+    let Ok(mut workbook) = gridxcel_rs::open_workbook_auto_from_rs(std::io::Cursor::new(data.to_vec()))
     else {
         return;
     };
@@ -58,13 +58,13 @@ fuzz_target!(|data: &[u8]| {
     // Each concrete reader is also driven directly, so a file whose detection disagrees with its
     // contents still gets parsed by the format that claims it.
     let bytes = data.to_vec();
-    if let Ok(mut xlsx) = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes.clone())) {
+    if let Ok(mut xlsx) = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes.clone())) {
         let _ = xlsx.worksheets();
     }
-    if let Ok(mut xls) = cellar::open_xls_from_rs(std::io::Cursor::new(bytes.clone())) {
+    if let Ok(mut xls) = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(bytes.clone())) {
         let _ = xls.worksheets();
     }
-    if let Ok(mut ods) = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)) {
+    if let Ok(mut ods) = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)) {
         let _ = ods.worksheets();
     }
 });

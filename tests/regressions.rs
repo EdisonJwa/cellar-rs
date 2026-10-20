@@ -4,7 +4,7 @@
 //! fails here rather than in the field. The fixtures are built in the test rather than shipped,
 //! because every one of these is a malformed or adversarial file that no real suite carries.
 
-use cellar::{Data, Error, Reader};
+use gridxcel_rs::{Data, Error, Reader};
 
 // ============================================================ ODS helpers
 
@@ -36,8 +36,8 @@ fn ods_doc(body: &str) -> String {
     )
 }
 
-fn open_ods(body: &str) -> cellar::Ods<std::io::Cursor<Vec<u8>>> {
-    cellar::open_ods_from_rs(std::io::Cursor::new(ods_package(&ods_doc(body)))).unwrap()
+fn open_ods(body: &str) -> gridxcel_rs::Ods<std::io::Cursor<Vec<u8>>> {
+    gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(ods_package(&ods_doc(body)))).unwrap()
 }
 
 // =========================================================== xlsx helpers
@@ -180,7 +180,7 @@ fn xlsx_formula_read_does_not_need_the_shared_strings() {
 </worksheet>"#;
     let bytes = xlsx_package(sheet, &[("xl/sharedStrings.xml", "<sst><si><t>unclosed")]);
 
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let formulas = wb.worksheet_formula("S");
     assert!(
         formulas.is_ok(),
@@ -197,7 +197,7 @@ fn xlsx_empty_error_value_is_empty() {
 <sheetData><row r="1"><c r="A1" t="e"><v></v></c><c r="B1"><v>1</v></c></row></sheetData>
 </worksheet>"#;
     let bytes = xlsx_package(sheet, &[]);
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = wb.worksheet_range("S").unwrap();
     // An empty value contributes no cell, so the range is just B1 and A1 is outside it.
     assert_eq!(range.get((0, 0)), None);
@@ -216,10 +216,10 @@ fn xlsx_streaming_and_dense_agree_on_an_impossible_row() {
 </worksheet>"#;
     let bytes = xlsx_package(sheet, &[]);
 
-    let mut dense_wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes.clone())).unwrap();
+    let mut dense_wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes.clone())).unwrap();
     let dense = dense_wb.worksheet_range("S");
 
-    let mut stream_wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut stream_wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let mut rows = stream_wb.worksheet_rows("S").unwrap();
     let streamed = rows.next_row();
 
@@ -248,7 +248,7 @@ fn xlsx_integer_and_float_are_distinguished() {
 </row></sheetData>
 </worksheet>"#;
     let bytes = xlsx_package(sheet, &[]);
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = wb.worksheet_range("S").unwrap();
     let cell = |c: u32| range.get((0, c)).cloned().unwrap_or(Data::Empty);
     assert_eq!(cell(0), Data::Int(42));
@@ -391,7 +391,7 @@ fn cfb_large_file_with_a_difat_extension_opens() {
     out.extend_from_slice(&dir);
     out.extend_from_slice(&g);
 
-    let mut wb = cellar::open_xls_from_rs(std::io::Cursor::new(out))
+    let mut wb = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(out))
         .expect("a file with a DIFAT extension must open");
     assert_eq!(wb.sheet_names(), ["Sheet1"]);
     assert_eq!(
@@ -522,7 +522,7 @@ fn cfb_directory_hole_does_not_hide_the_workbook() {
     data.resize(d * SECTOR, 0);
     out.extend_from_slice(&data);
 
-    let mut wb = cellar::open_xls_from_rs(std::io::Cursor::new(out))
+    let mut wb = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(out))
         .expect("a directory hole must not hide the workbook");
     assert_eq!(wb.sheet_names(), ["Sheet1"]);
     assert_eq!(
@@ -669,7 +669,7 @@ fn xls_interior_dimensions_does_not_drop_cells() {
     };
 
     let read = |bytes: Vec<u8>| {
-        let mut wb = cellar::open_xls_from_rs(std::io::Cursor::new(bytes)).unwrap();
+        let mut wb = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(bytes)).unwrap();
         wb.worksheet_range("Sheet1").unwrap()
     };
 
@@ -689,7 +689,7 @@ fn xls_interior_dimensions_does_not_drop_cells() {
 #[test]
 fn xls_rejects_bytes_that_are_not_a_workbook() {
     let junk = b"this is definitely not a BIFF workbook, not even close".to_vec();
-    match cellar::open_xls_from_rs(std::io::Cursor::new(junk)) {
+    match gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(junk)) {
         Err(_) => {}
         Ok(wb) => panic!(
             "expected a rejection, but it opened with sheets {:?}",

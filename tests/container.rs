@@ -5,7 +5,7 @@
 //! damaged archive, the tolerance for part names spelled differently by different producers,
 //! and the fact that detection still works on the real fixtures.
 
-use cellar::{Data, Error, Format, Reader};
+use gridxcel_rs::{Data, Error, Format, Reader};
 
 fn fixture(name: &str) -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -30,7 +30,7 @@ fn a_windows_zipped_archive_is_still_readable() {
         "the fixture no longer has backslash separators; this test needs a different one"
     );
 
-    let mut workbook = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut workbook = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = workbook.worksheet_range("Sheet1").unwrap();
     assert!(
         range.used_cell_count() > 0,
@@ -63,7 +63,7 @@ fn a_package_without_relationship_metadata_still_reads() {
         .unwrap();
     let bytes = w.finish().unwrap().into_inner();
 
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(
         wb.worksheet_range("S").unwrap().get((0, 0)),
         Some(&Data::Int(11))
@@ -75,7 +75,7 @@ fn a_package_without_relationship_metadata_still_reads() {
 #[test]
 fn a_garbage_archive_is_a_container_error() {
     let junk = b"PK\x03\x04 not really a zip archive at all".to_vec();
-    match cellar::open_xlsx_from_rs(std::io::Cursor::new(junk)) {
+    match gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(junk)) {
         Err(Error::Container(_)) => {}
         Err(other) => panic!("expected a container error, got {other:?}"),
         Ok(_) => panic!("a header with no directory must not open"),
@@ -87,7 +87,7 @@ fn a_garbage_archive_is_a_container_error() {
 fn a_truncated_archive_is_a_container_error() {
     let bytes = std::fs::read(fixture("sample.ods")).unwrap();
     let truncated = bytes[..bytes.len() / 2].to_vec();
-    match cellar::open_ods_from_rs(std::io::Cursor::new(truncated)) {
+    match gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(truncated)) {
         Err(Error::Container(_)) => {}
         Err(other) => panic!("expected a container error, got {other:?}"),
         Ok(_) => panic!("a truncated archive must not open"),
@@ -117,7 +117,7 @@ fn part_names_are_matched_case_insensitively() {
     }
     let bytes = writer.finish().unwrap().into_inner();
 
-    let mut workbook = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut workbook = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let range = workbook.worksheet_range("S").unwrap();
     assert_eq!(range.get((0, 0)), Some(&Data::Int(7)));
 }
@@ -130,14 +130,14 @@ fn detection_still_distinguishes_the_formats() {
         ("rollmilkice.xlsx", Format::Xlsx),
         ("sample.ods", Format::Ods),
     ] {
-        let workbook = cellar::open_workbook(fixture(name)).unwrap();
+        let workbook = gridxcel_rs::open_workbook(fixture(name)).unwrap();
         assert_eq!(workbook.format(), expected, "{name}");
     }
 
     // An OLE container that is not a workbook is rejected rather than misread as one. The
     // fixture is a Word 97 document, which shares `.xls`'s container format exactly.
     assert!(
-        cellar::open_workbook(fixture("word97.doc")).is_err(),
+        gridxcel_rs::open_workbook(fixture("word97.doc")).is_err(),
         "a Word document must not open as a workbook"
     );
 }
@@ -165,7 +165,7 @@ fn a_deflated_part_reads_correctly() {
     }
     let bytes = writer.finish().unwrap().into_inner();
 
-    let mut workbook = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut workbook = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(
         workbook.worksheet_range("S").unwrap().get((0, 0)),
         Some(&Data::Int(42))

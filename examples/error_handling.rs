@@ -13,7 +13,7 @@
 //! cargo run --example error_handling -- README.md
 //! ```
 
-use cellar::{open_workbook, Error, Reader};
+use gridxcel_rs::{open_workbook, Error, Reader};
 use std::path::Path;
 
 fn main() {

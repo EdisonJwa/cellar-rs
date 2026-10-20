@@ -13,7 +13,7 @@
 
 mod common;
 
-use cellar::{Data, Reader};
+use gridxcel_rs::{Data, Reader};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -91,7 +91,7 @@ fn write_workbook(path: &std::path::Path) {
     writer
         .start_file("xl/worksheets/sheet1.xml", options)
         .unwrap();
-    let last_column = cellar::refs::col_to_letters(COLS - 1);
+    let last_column = gridxcel_rs::refs::col_to_letters(COLS - 1);
     writer
         .write_all(
             format!(
@@ -112,7 +112,7 @@ fn write_workbook(path: &std::path::Path) {
                 .write_all(
                     format!(
                         r#"<c r="{}{row}"><v>{}</v></c>"#,
-                        cellar::refs::col_to_letters(col),
+                        gridxcel_rs::refs::col_to_letters(col),
                         row * COLS + col
                     )
                     .as_bytes(),
@@ -128,13 +128,13 @@ fn write_workbook(path: &std::path::Path) {
 #[test]
 fn reading_a_sheet_does_not_hold_it_twice() {
     let _measuring = sole_measurer();
-    let path = crate::common::scratch_file("cellar-peak-allocation.xlsx");
+    let path = crate::common::scratch_file("gridxcel-peak-allocation.xlsx");
     write_workbook(&path);
 
     // Open and read once so that one-off costs ??the shared string table, the archive index ??are
     // behind us and the measurement covers assembling the sheet.
     {
-        let mut workbook = cellar::open_workbook(&path).unwrap();
+        let mut workbook = gridxcel_rs::open_workbook(&path).unwrap();
         assert_eq!(
             workbook.worksheet_range("S").unwrap().used_cell_count(),
             CELLS
@@ -142,10 +142,10 @@ fn reading_a_sheet_does_not_hold_it_twice() {
     }
 
     reset_peak();
-    let mut workbook = cellar::open_workbook(&path).unwrap();
+    let mut workbook = gridxcel_rs::open_workbook(&path).unwrap();
     let range = workbook.worksheet_range("S").unwrap();
     let measured = peak();
-    let dense = CELLS * std::mem::size_of::<cellar::Data>();
+    let dense = CELLS * std::mem::size_of::<gridxcel_rs::Data>();
 
     assert_eq!(range.used_cell_count(), CELLS);
     crate::common::cleanup(&path);
@@ -196,18 +196,18 @@ fn write_sparse_workbook(path: &std::path::Path) {
 #[test]
 fn a_window_read_does_not_pay_for_the_rest_of_the_sheet() {
     let _measuring = sole_measurer();
-    let path = crate::common::scratch_file("cellar-window-peak.xlsx");
+    let path = crate::common::scratch_file("gridxcel-window-peak.xlsx");
     write_workbook(&path);
     let file_size = std::fs::metadata(&path).unwrap().len();
 
     // Warm up so one-off costs are behind the measurement.
     {
-        let mut workbook = cellar::open_workbook(&path).unwrap();
+        let mut workbook = gridxcel_rs::open_workbook(&path).unwrap();
         let _ = workbook.worksheet_range_ref("S", "A1").unwrap();
     }
 
     reset_peak();
-    let mut workbook = cellar::open_workbook(&path).unwrap();
+    let mut workbook = gridxcel_rs::open_workbook(&path).unwrap();
     let window = workbook.worksheet_range_ref("S", "A1").unwrap();
     let measured = peak();
     crate::common::cleanup(&path);
@@ -231,11 +231,11 @@ fn a_window_read_does_not_pay_for_the_rest_of_the_sheet() {
 #[test]
 fn streaming_a_sparse_sheet_costs_a_constant_amount() {
     let _measuring = sole_measurer();
-    let path = crate::common::scratch_file("cellar-sparse-peak.xlsx");
+    let path = crate::common::scratch_file("gridxcel-sparse-peak.xlsx");
     write_sparse_workbook(&path);
 
     reset_peak();
-    let mut workbook = cellar::open_workbook(&path).unwrap();
+    let mut workbook = gridxcel_rs::open_workbook(&path).unwrap();
     let mut cells = Vec::new();
     let mut rows = workbook.worksheet_rows("S").unwrap();
     while let Some(row) = rows.next_row().unwrap() {

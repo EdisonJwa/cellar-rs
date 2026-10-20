@@ -5,7 +5,7 @@
 //! range of window positions and sizes, and reports the bytes actually decompressed so the
 //! mechanism is visible rather than asserted.
 
-use cellar::Reader;
+use gridxcel_rs::Reader;
 use std::time::{Duration, Instant};
 
 fn ms(d: Duration) -> f64 {
@@ -86,7 +86,7 @@ fn main() {
     println!("file: {} bytes\n", std::fs::metadata(&path).unwrap().len());
 
     let whole = best_of(5, || {
-        let mut wb = cellar::open_workbook(&path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(&path).unwrap();
         std::hint::black_box(wb.worksheet_range("S").unwrap().used_cell_count());
     });
     println!("whole sheet            {:>9.2} ms", ms(whole));
@@ -102,7 +102,7 @@ fn main() {
         ("B19990:B19991", "B19990:B19991", "near the bottom"),
     ] {
         let t = best_of(20, || {
-            let mut wb = cellar::open_workbook(&path).unwrap();
+            let mut wb = gridxcel_rs::open_workbook(&path).unwrap();
             std::hint::black_box(wb.worksheet_range_ref("S", reference).unwrap().used_cell_count());
         });
         println!(
@@ -117,7 +117,7 @@ fn main() {
 
     // The streaming read: constant memory regardless of sheet size.
     let stream = best_of(5, || {
-        let mut wb = cellar::open_workbook(&path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(&path).unwrap();
         let mut rows = wb.worksheet_rows("S").unwrap();
         let mut n = 0u64;
         while let Some(r) = rows.next_row().unwrap() {

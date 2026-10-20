@@ -11,7 +11,7 @@
 
 #[cfg(feature = "serde")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use cellar::{open_workbook, RangeDeserializerBuilder, Reader};
+    use gridxcel_rs::{open_workbook, RangeDeserializerBuilder, Reader};
     use serde::Deserialize;
 
     #[derive(Debug, Deserialize)]
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[serde(
             rename = "Hits",
             default,
-            deserialize_with = "cellar::de::deserialize_as_i64_or_none"
+            deserialize_with = "gridxcel_rs::de::deserialize_as_i64_or_none"
         )]
         hits: Option<i64>,
     }

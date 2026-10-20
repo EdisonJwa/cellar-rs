@@ -6,7 +6,7 @@
 
 mod common;
 
-use cellar::{open_workbook, Data, Error, Format, HeaderRow, Reader};
+use gridxcel_rs::{open_workbook, Data, Error, Format, HeaderRow, Reader};
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> PathBuf {
@@ -215,7 +215,7 @@ fn sheets_are_addressable_by_index() {
 #[test]
 fn detection_ignores_the_extension() {
     // The same bytes under a misleading extension still read as ODS.
-    let copy = crate::common::scratch_file("cellar-detection-probe.xlsx");
+    let copy = crate::common::scratch_file("gridxcel-detection-probe.xlsx");
     std::fs::copy(fixture("sample.ods"), &copy).unwrap();
     let workbook = open_workbook(&copy).unwrap();
     assert_eq!(workbook.format(), Format::Ods);
@@ -229,7 +229,7 @@ fn rejects_a_file_that_is_not_a_spreadsheet() {
     assert!(open_workbook(fixture("word97.doc")).is_err());
 
     // Arbitrary bytes are not any known container.
-    let junk = crate::common::scratch_file("cellar-junk-probe.bin");
+    let junk = crate::common::scratch_file("gridxcel-junk-probe.bin");
     std::fs::write(&junk, b"this is definitely not a workbook at all").unwrap();
     assert!(open_workbook(&junk).is_err());
     crate::common::cleanup(&junk);
@@ -239,7 +239,8 @@ fn rejects_a_file_that_is_not_a_spreadsheet() {
 #[test]
 fn reads_from_an_in_memory_buffer() {
     let bytes = std::fs::read(fixture("sample.ods")).unwrap();
-    let mut workbook = cellar::open_workbook_auto_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut workbook =
+        gridxcel_rs::open_workbook_auto_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert_eq!(workbook.sheet_names(), ["Sheet1", "Second Sheet"]);
     let range = workbook.worksheet_range("Sheet1").unwrap();
     assert_eq!(range.get((1, 0)), Some(&Data::String("alpha".into())));

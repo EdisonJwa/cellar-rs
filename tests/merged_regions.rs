@@ -4,7 +4,7 @@
 //! grid. Without the region a caller cannot tell "merged" from "empty", so each reader has to
 //! report it rather than leave the caller to guess from shape alone.
 
-use cellar::{Data, MergedRegion, Reader};
+use gridxcel_rs::{Data, MergedRegion, Reader};
 
 // ------------------------------------------------------------------ helpers
 
@@ -208,7 +208,7 @@ fn region_arithmetic_is_inclusive() {
 #[test]
 fn xlsx_reports_merged_regions() {
     let bytes = xlsx_with_merges(&["A1:B2", "D4:E6"]);
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let regions = wb.worksheet_merged_regions("S").unwrap();
     assert_eq!(
         regions,
@@ -230,14 +230,14 @@ fn xlsx_reports_merged_regions() {
 #[test]
 fn xlsx_without_merges_reports_nothing() {
     let bytes = xlsx_with_merges(&[]);
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert!(wb.worksheet_merged_regions("S").unwrap().is_empty());
 }
 
 #[test]
 fn xls_reports_merged_regions() {
     let bytes = xls_with_merge((2, 1), (4, 3));
-    let mut wb = cellar::open_xls_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xls_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let regions = wb.worksheet_merged_regions("Sheet1").unwrap();
     assert_eq!(regions, vec![MergedRegion::new((2, 1), (4, 3))]);
     assert_eq!(regions[0].to_a1(), "B3:D5");
@@ -246,7 +246,7 @@ fn xls_reports_merged_regions() {
 #[test]
 fn ods_reports_merged_regions() {
     let bytes = ods_with_span(3, 2);
-    let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     let regions = wb.worksheet_merged_regions("S").unwrap();
     assert_eq!(regions, vec![MergedRegion::new((0, 0), (1, 2))]);
     assert_eq!(regions[0].to_a1(), "A1:C2");
@@ -255,7 +255,7 @@ fn ods_reports_merged_regions() {
 #[test]
 fn ods_without_spans_reports_nothing() {
     let bytes = ods_with_span(1, 1);
-    let mut wb = cellar::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_ods_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert!(wb.worksheet_merged_regions("S").unwrap().is_empty());
 }
 
@@ -263,10 +263,10 @@ fn ods_without_spans_reports_nothing() {
 #[test]
 fn merged_regions_reject_an_unknown_sheet() {
     let bytes = xlsx_with_merges(&["A1:B2"]);
-    let mut wb = cellar::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
+    let mut wb = gridxcel_rs::open_xlsx_from_rs(std::io::Cursor::new(bytes)).unwrap();
     assert!(matches!(
         wb.worksheet_merged_regions("nope"),
-        Err(cellar::Error::NotFound(_))
+        Err(gridxcel_rs::Error::NotFound(_))
     ));
 }
 
@@ -278,7 +278,7 @@ fn real_fixtures_report_their_merges() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/data")
             .join(name);
-        let mut wb = cellar::open_workbook(&path).unwrap();
+        let mut wb = gridxcel_rs::open_workbook(&path).unwrap();
         for sheet in wb.sheet_names().to_vec() {
             let regions = wb.worksheet_merged_regions(&sheet).unwrap();
             for r in &regions {

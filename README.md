@@ -1,9 +1,9 @@
-# cellar
+# gridxcel-rs
 
-[![CI](https://github.com/EdisonJwa/cellar-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/EdisonJwa/cellar-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/cellar.svg)](https://crates.io/crates/cellar)
-[![docs.rs](https://docs.rs/cellar/badge.svg)](https://docs.rs/cellar)
-[![license](https://img.shields.io/crates/l/cellar.svg)](LICENSE)
+[![CI](https://github.com/EdisonJwa/gridxcel-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/EdisonJwa/gridxcel-rs/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/gridxcel-rs.svg)](https://crates.io/crates/gridxcel-rs)
+[![docs.rs](https://docs.rs/gridxcel-rs/badge.svg)](https://docs.rs/gridxcel-rs)
+[![license](https://img.shields.io/crates/l/gridxcel-rs.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.88-blue.svg)](Cargo.toml)
 
 **A pure-Rust reader for Excel and OpenDocument spreadsheet files.**
@@ -14,11 +14,11 @@ millisecond.
 
 ```toml
 [dependencies]
-cellar = "0.1"
+gridxcel-rs = "0.1"
 ```
 
 ```rust
-use cellar::{open_workbook, Reader};
+use gridxcel_rs::{open_workbook, Reader};
 
 let mut workbook = open_workbook("report.xlsx")?;
 let range = workbook.worksheet_range("Sheet1")?;
@@ -29,7 +29,7 @@ for row in range.rows() {
     }
     println!();
 }
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 ---
@@ -75,7 +75,7 @@ Format detection is by **content**, not extension, so a renamed file still reads
 ### Read a sheet
 
 ```rust
-use cellar::{open_workbook, Reader};
+use gridxcel_rs::{open_workbook, Reader};
 
 let mut workbook = open_workbook("sales.xlsx")?;
 
@@ -90,7 +90,7 @@ for name in workbook.sheet_names().to_vec() {
         println!();
     }
 }
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 ### Cell values
@@ -98,7 +98,7 @@ for name in workbook.sheet_names().to_vec() {
 A cell is a `Data`, which distinguishes the cases a spreadsheet actually has:
 
 ```rust
-use cellar::{CellError, Data, ExcelDateTime};
+use gridxcel_rs::{CellError, Data, ExcelDateTime};
 
 Data::Int(42)                                       // a whole number
 Data::Float(1.5)                                    // a fractional number
@@ -117,7 +117,7 @@ wants for an ID or a count column, and loses nothing: the file stores `2` and `2
 Forgiving accessors mean you rarely match by hand:
 
 ```rust
-# let value = cellar::Data::Float(2.5);
+# let value = gridxcel_rs::Data::Float(2.5);
 value.as_string();   // Some(String) for anything renderable
 value.as_f64();      // numbers, booleans, date serials, and numeric text
 value.as_i64();
@@ -133,7 +133,7 @@ under the 1900 system. Excel's fabricated 1900-02-29 is handled the way every ma
 handles it: serial 60 converts to 1900-03-01.
 
 ```rust
-use cellar::ExcelDateTime;
+use gridxcel_rs::ExcelDateTime;
 
 let dt = ExcelDateTime::new(45321.5, false);
 assert_eq!(dt.to_ymd_hms().unwrap().to_string(), "2024-01-30 12:00:00");
@@ -152,7 +152,7 @@ that path refuses rather than try to allocate them.
 `worksheet_rows` reads the same sheet without materialising anything:
 
 ```rust
-use cellar::{open_workbook, Reader};
+use gridxcel_rs::{open_workbook, Reader};
 
 let mut workbook = open_workbook("huge.xlsx")?;
 let mut rows = workbook.worksheet_rows("Sheet1")?;
@@ -163,7 +163,7 @@ while let Some(row) = rows.next_row()? {
         println!("({}, {column}) = {value:?}", row.index());
     }
 }
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 - **Memory is the widest row, not the area of the sheet.** Row buffers are reused, so a long sheet
@@ -183,11 +183,11 @@ drift apart.
 `worksheet_range_ref` returns exactly the rectangle named by an A1-style reference:
 
 ```rust
-# use cellar::{open_workbook, Reader};
+# use gridxcel_rs::{open_workbook, Reader};
 # let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
 let totals = workbook.worksheet_range_ref("Identifications", "B2:F40")?;
 assert_eq!(totals.get_size(), (39, 5));
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 Its shape follows the reference rather than the data, so positions inside the window that hold
@@ -214,11 +214,11 @@ up to that row. What is constant is that rows *below* the window are never decom
 Values and formulas are read separately, because a sheet usually needs one or the other:
 
 ```rust
-# use cellar::{open_workbook, Reader};
+# use gridxcel_rs::{open_workbook, Reader};
 # let mut workbook = open_workbook("report.xlsx")?;
 let values   = workbook.worksheet_range("Sheet1")?;
 let formulas = workbook.worksheet_formula("Sheet1")?;
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 Shared formulas — where Excel writes the text once and references it from the rest of a
@@ -240,14 +240,14 @@ A merged cell keeps its value in its top-left position and leaves the rest of th
 values alone cannot tell "merged" from "empty":
 
 ```rust
-# use cellar::{open_workbook, Reader};
+# use gridxcel_rs::{open_workbook, Reader};
 # let mut workbook = open_workbook("report.xlsx")?;
 for region in workbook.worksheet_merged_regions("Sheet1")? {
     println!("{region} covers {}x{}", region.rows(), region.columns());
     let anchor = workbook.worksheet_range("Sheet1")?.value_or_empty(region.start);
     println!("  {anchor:?}");
 }
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 Corners are **inclusive**, matching how every format states a merge — which differs from `Range`'s
@@ -260,7 +260,7 @@ A sheet is visible, hidden, or very hidden. Hiding is presentation, not access c
 sheet's cells read normally.
 
 ```rust
-# use cellar::{open_workbook, Reader};
+# use gridxcel_rs::{open_workbook, Reader};
 # let mut workbook = open_workbook("report.xlsx")?;
 for (index, name) in workbook.sheet_names().to_vec().iter().enumerate() {
     let visibility = workbook.sheet_visibility(index);
@@ -270,27 +270,27 @@ for (index, name) in workbook.sheet_names().to_vec().iter().enumerate() {
         println!("{name} ({visibility})");   // "hidden" or "veryHidden"
     }
 }
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 ### Deserialize rows (feature `serde`)
 
 ```toml
-cellar = { version = "0.1", features = ["serde"] }
+gridxcel-rs = { version = "0.1", features = ["serde"] }
 ```
 
 Fields are matched to columns **by header name**, so a struct works even when the sheet's columns
 are in a different order, and extra columns are ignored.
 
 ```rust
-use cellar::{open_workbook, RangeDeserializerBuilder, Reader};
+use gridxcel_rs::{open_workbook, RangeDeserializerBuilder, Reader};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct Record {
     metric: String,
     value: f64,
-    #[serde(default, deserialize_with = "cellar::de::deserialize_as_f64_or_none")]
+    #[serde(default, deserialize_with = "gridxcel_rs::de::deserialize_as_f64_or_none")]
     noise: Option<f64>,
 }
 
@@ -308,11 +308,11 @@ Blanks become `None` for `Option` fields. Without headers, columns are matched b
 ### Header row
 
 ```rust
-# use cellar::{open_workbook, HeaderRow, Reader};
+# use gridxcel_rs::{open_workbook, HeaderRow, Reader};
 # let mut workbook = open_workbook("report.xlsx")?;
 workbook.with_header_row(HeaderRow::Row(2));
 let range = workbook.worksheet_range("Sheet1")?;
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 Trimming keeps coordinates absolute, so after asking for row 2 the range starts at `(1, 0)`.
@@ -321,13 +321,13 @@ Iterating `rows()` is unaffected.
 ### Sheet metadata
 
 ```rust
-# use cellar::{open_workbook, Reader};
+# use gridxcel_rs::{open_workbook, Reader};
 # let mut workbook = open_workbook("report.xlsx")?;
 workbook.sheet_names();          // &[String], in workbook order
 workbook.defined_names();        // &[(String, String)] of name and target
 workbook.sheet_index("Sheet1");  // Option<usize>
 workbook.worksheet_range_at(0);  // by position instead of name
-# Ok::<(), cellar::Error>(())
+# Ok::<(), gridxcel_rs::Error>(())
 ```
 
 ### Error handling
@@ -335,9 +335,9 @@ workbook.worksheet_range_at(0);  // by position instead of name
 Failures are typed rather than stringly-message'd, and a malformed file never panics:
 
 ```rust
-use cellar::Error;
+use gridxcel_rs::Error;
 
-match cellar::open_workbook(path) {
+match gridxcel_rs::open_workbook(path) {
     Err(Error::Encrypted)        => { /* needs a password */ }
     Err(Error::Unsupported(m))   => { /* valid file, unimplemented feature */ }
     Err(Error::NotFound(name))   => { /* no such sheet */ }
@@ -357,7 +357,7 @@ Nothing is enabled by default.
 | `codepage` | Correct legacy `.xls` text via `encoding_rs` | `encoding_rs` |
 
 ```toml
-cellar = { version = "0.1", features = ["serde", "dates", "codepage"] }
+gridxcel-rs = { version = "0.1", features = ["serde", "dates", "codepage"] }
 ```
 
 ### Legacy `.xls` text and the `codepage` feature
@@ -393,7 +393,7 @@ crate: `cd compare && cargo run --release`.
 
 A 4000 × 50 numeric sheet (200,000 cells), best of N:
 
-| Workload | cellar | calamine |
+| Workload | gridxcel-rs | calamine |
 |---|---|---|
 | `.xlsx` open + first sheet | 31 ms | 40 ms |
 | `.xlsx` read whole sheet | 31 ms | 39 ms |

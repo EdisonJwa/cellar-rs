@@ -13,7 +13,7 @@
 //! cargo run --example read_window -- tests/data/chanora.xlsx Summary B2:D6
 //! ```
 
-use cellar::{open_workbook, Data, Reader};
+use gridxcel_rs::{open_workbook, Data, Reader};
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

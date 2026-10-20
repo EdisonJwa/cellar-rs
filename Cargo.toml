@@ -1,5 +1,5 @@
 [package]
-name = "cellar"
+name = "gridxcel-rs"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.88"
@@ -7,8 +7,8 @@ description = "A pure Rust reader for Excel and OpenDocument spreadsheet files"
 license = "MIT"
 keywords = ["excel", "ods", "xls", "xlsx", "spreadsheet"]
 categories = ["text-processing", "parsing", "encoding"]
-repository = "https://github.com/EdisonJwa/cellar-rs"
-documentation = "https://docs.rs/cellar"
+repository = "https://github.com/EdisonJwa/gridxcel-rs"
+documentation = "https://docs.rs/gridxcel-rs"
 readme = "README.md"
 # The comparison harness is a separate workspace that exists to measure this crate against
 # another reader. It is not part of the library and pulls a dependency this crate does not have.

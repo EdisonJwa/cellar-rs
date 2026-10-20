@@ -10,7 +10,7 @@
 //! cargo run --example read_values -- tests/data/chanora.xlsx
 //! ```
 
-use cellar::{open_workbook, Data, Reader};
+use gridxcel_rs::{open_workbook, Data, Reader};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args().nth(1).unwrap_or_else(|| {
