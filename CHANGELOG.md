@@ -4,6 +4,26 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-10-21
+
+Documentation only. No code change.
+
+### Changed
+
+- **The README is rewritten.** The previous one opened with an account of the `zip` crate being
+  yanked from crates.io and what `calamine` pins, which introduced this crate by describing a
+  neighbouring project's bad week. It now opens on what the crate does and how to start, with one
+  section per task.
+- Every performance figure was re-measured. The old table quoted `.ods` numbers from before the
+  parser work landed (71 ms against a measured 83 ms), and `.xlsx` whole-sheet 31 ms against 49.
+- Test count corrected from 206 to 232 across twelve suites, with the doc-test count stated
+  separately.
+
+### Added
+
+- Doc-tests for the front-page sample and the error-handling match, the two README snippets that
+  had none behind them. 22 doc-tests now compile every example in the file.
+
 ## [0.1.1] - 2026-10-21
 
 A metadata-only patch. No API change.
