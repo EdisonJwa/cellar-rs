@@ -345,4 +345,38 @@ pub mod readme_examples {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub struct Deserialize;
+
+    /// The front page sample: open a workbook and walk every sheet.
+    ///
+    /// ```
+    /// use gridxcel_rs::{open_workbook, Reader};
+    ///
+    /// let mut workbook = open_workbook("tests/data/chanora.xlsx")?;
+    /// let range = workbook.worksheet_range("Scan Information")?;
+    ///
+    /// for row in range.rows() {
+    ///     for cell in row {
+    ///         let _ = cell.as_string().unwrap_or_default();
+    ///     }
+    /// }
+    /// # Ok::<(), gridxcel_rs::Error>(())
+    /// ```
+    pub struct FrontPage;
+
+    /// Errors are typed, so a caller can act on the difference between a file that needs
+    /// a password, one that is damaged, and one using a feature this reader does not cover.
+    ///
+    /// ```
+    /// use gridxcel_rs::Error;
+    ///
+    /// match gridxcel_rs::open_workbook("tests/data/chanora.xlsx") {
+    ///     Err(Error::Encrypted) => {}
+    ///     Err(Error::Unsupported(_)) => {}
+    ///     Err(Error::NotFound(_)) => {}
+    ///     Err(e) if e.is_corrupt() => {}
+    ///     Ok(_) => {}
+    ///     Err(_) => {}
+    /// }
+    /// ```
+    pub struct ErrorKinds;
 }
