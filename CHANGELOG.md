@@ -4,28 +4,16 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] - 2026-10-21
 
-### Changed
+A metadata-only patch. No API change.
 
-- **`zipcore` 0.2 → 0.10.1.** Eight breaking minor versions of a 0.x crate, and no source change
-  was needed: the three things this crate relies on — `Archive::new_with_options`,
-  `ReadOptions::max_entry_size`, and the `Error` variants it maps — kept their shape and meaning.
-  Verified rather than assumed:
+### Fixed
 
-  - The fixture cell counts are **identical** on 0.2.0 and 0.10.1 (3221 / 17 / 20), so decompression
-    and entry resolution did not change in a way that alters what a reader sees.
-  - `max_entry_size` is still the bound that holds when a header lies about a size; a part
-    declaring 4 GiB while delivering 64 KiB is refused without allocating.
-  - All 13 adversarial attacks still fail as intended, and a damaged compressed body is reported as
-    damage rather than as `Encrypted`.
+- The crate description read "pure Rust" where the README and documentation say "pure-Rust".
 
-  One consequence worth stating plainly: 0.10 makes `getrandom` a **non-optional** dependency (it
-  seeds ZipCrypto headers and AES salts in the writer), so the tree behind `zipcore` is three crates
-  rather than two. It cannot be switched off from here, and it raises no MSRV — both it and
-  `zipcore` declare 1.85, below this crate's 1.88.
 
-## [0.1.0] — 2026-10-20
+## [0.1.0] - 2026-10-20
 
 The first release. Read-only, and complete for the three formats it covers.
 

@@ -1,9 +1,9 @@
 [package]
 name = "gridxcel-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.88"
-description = "A pure Rust reader for Excel and OpenDocument spreadsheet files"
+description = "A pure-Rust reader for Excel and OpenDocument spreadsheet files"
 license = "MIT"
 keywords = ["excel", "ods", "xls", "xlsx", "spreadsheet"]
 categories = ["text-processing", "parsing", "encoding"]
