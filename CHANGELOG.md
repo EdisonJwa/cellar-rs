@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-10-21
+
+Documentation only. No code change.
+
+### Fixed
+
+- The examples list omitted `dump`, which is the shortest way to see what a workbook holds.
+  Every example the README names was run before this release, and all seven exit cleanly.
+
 ## [0.1.3] - 2026-10-21
 
 Repository files only. No code change, no API change.

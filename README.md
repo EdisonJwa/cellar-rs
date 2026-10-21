@@ -344,6 +344,7 @@ Macintosh. A code page it does not know falls back to Latin-1 rather than guessi
 
 ```
 cargo run --example read_values    -- tests/data/chanora.xlsx
+cargo run --example dump           -- tests/data/sample.ods 5
 cargo run --example stream_rows    -- tests/data/chanora.xlsx Identifications
 cargo run --example read_window    -- tests/data/chanora.xlsx Identifications B2:F40
 cargo run --example inspect        -- tests/data/sample.ods
