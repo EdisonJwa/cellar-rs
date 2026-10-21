@@ -451,24 +451,34 @@ impl<T: Default + Clone> SheetBuilder<T> {
         let rows = self.max.0 - self.min.0 + 1;
         let cols = self.max.1 - self.min.1 + 1;
         if self.origin != self.min || self.rows != rows || self.cols != cols {
-            // Drop the rows and columns outside the extent written. `retain` keeps the survivors
-            // in order in a single in-place pass, which leaves exactly the compacted row-major
-            // layout, so trimming a stale declared extent costs no second allocation.
+            // Drop the rows and columns outside the extent written.
+            //
+            // Done row by row, copying only the kept run of each kept row. The previous version
+            // ran a `retain` whose predicate divided every slot by the buffer width to recover its
+            // row and column, so the cost was a division and a modulus per *cell*. That is the
+            // path an `.ods` sheet always takes, because the format declares no extent: the buffer
+            // is grown geometrically and so never matches the written extent. On a 4,000 x 50
+            // sheet it made assembly cost several times more than parsing.
             let buffer_cols = self.cols as usize;
             let row_offset = (self.min.0 - self.origin.0) as usize;
             let col_offset = (self.min.1 - self.origin.1) as usize;
             let keep_rows = rows as usize;
             let keep_cols = cols as usize;
-            let mut index = 0usize;
-            self.inner.retain(|_| {
-                let row = index / buffer_cols;
-                let col = index % buffer_cols;
-                index += 1;
-                row >= row_offset
-                    && row < row_offset + keep_rows
-                    && col >= col_offset
-                    && col < col_offset + keep_cols
-            });
+
+            let mut inner = std::mem::take(&mut self.inner);
+            let mut write = 0usize;
+            for row in row_offset..row_offset + keep_rows {
+                let start = row * buffer_cols + col_offset;
+                let end = (start + keep_cols).min(inner.len());
+                // Moved a run at a time with `slice::swap`-free rotation: the destination never
+                // overtakes the source, because `write <= start` holds for every kept row.
+                for src in start..end {
+                    inner.swap(write, src);
+                    write += 1;
+                }
+            }
+            inner.truncate(write);
+            self.inner = inner;
         }
         Range::new(self.min, (self.max.0 + 1, self.max.1 + 1), self.inner)
     }
