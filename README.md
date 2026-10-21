@@ -426,9 +426,18 @@ Stated narrowly, because a list of advantages that includes parity is not a list
 **Parity, not a moat.** Flat whole-sheet reads are ~1.3× faster on a synthetic sheet and
 indistinguishable on a real one. Opening is metadata-only, which is table stakes.
 
-**Behind, and says so.** `.ods` whole-sheet reads are ~1.8× slower than `calamine`, because the
-format declares no extent and the sheet is assembled through a sparse list. Fixing it needs an
-ODS-specific two-pass reader, not a tweak.
+**Behind, and says so.** `.ods` whole-sheet reads are ~1.4× slower than `calamine`. The cause is
+the format, not the code: ODS states each cell as a full element with its attributes, so the same
+200,000 cells occupy 13.3 MB against 5.9 MB in OOXML. Per megabyte this parser is already ahead
+(5.0 ms/MB against `calamine`'s 5.25); there is simply 2.26× as much to walk. Assembly into a
+dense rectangle is 12% of the read, so it is not where the time goes.
+
+Two restructurings were tried and reverted, both measured with `compare`'s interleaved `ab` tool:
+resuming at a recorded offset instead of re-walking tables before the wanted one (no change beyond
+noise), and driving the dense read through `SheetBuilder` rather than a sparse list (5× slower,
+because a cell-at-a-time write loses to one conversion when the column count grows row by row).
+Streaming remains the answer for an `.ods` too large to materialise, where it is well ahead of a
+dense read.
 
 ## Hardening
 
