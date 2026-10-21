@@ -24,4 +24,6 @@ path = "src/window.rs"
 [[bin]]
 name = "profile_ods"
 path = "src/profile_ods.rs"
-
+[[bin]]
+name = "ab"
+path = "src/ab.rs"
