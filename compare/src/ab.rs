@@ -24,6 +24,7 @@ fn main() {
         .unwrap_or(15);
 
     let mut ours = Vec::new();
+    let mut ours_stream = Vec::new();
     let mut theirs = Vec::new();
 
     for _ in 0..rounds {
@@ -40,6 +41,21 @@ fn main() {
         }
         ours.push(t.elapsed());
 
+        // Streaming, which calamine has no equivalent for: its nearest form is a dense read
+        // walked row by row, so that is what it is timed against.
+        let t = Instant::now();
+        {
+            use gridxcel_rs::Reader as _;
+            let mut wb = gridxcel_rs::open_workbook(&path).expect("open");
+            let mut rows = wb.worksheet_rows(&sheet).expect("rows");
+            let mut n = 0u64;
+            while let Some(row) = rows.next_row().expect("row") {
+                n += row.len() as u64;
+            }
+            std::hint::black_box(n);
+        }
+        ours_stream.push(t.elapsed());
+
         let t = Instant::now();
         {
             use calamine::Reader as _;
@@ -54,6 +70,7 @@ fn main() {
         theirs.push(t.elapsed());
     }
 
+
     let med = |v: &mut Vec<Duration>| {
         v.sort_unstable();
         v[v.len() / 2]
@@ -63,6 +80,13 @@ fn main() {
     let ms = |d: Duration| d.as_secs_f64() * 1000.0;
     let (om, tm) = (med(&mut ours), med(&mut theirs));
 
+    let (os, ts) = (med(&mut ours_stream), med(&mut theirs));
+    println!(
+        "  streaming     median {:7.2} ms   vs a dense read of {:7.2} ms  ({:.2}x)",
+        ms(os),
+        ms(ts),
+        ms(ts) / ms(os)
+    );
     println!("{path}  sheet {sheet:?}  {rounds} interleaved rounds\n");
     println!("  gridxcel-rs   median {:7.2} ms   best {:7.2} ms", ms(om), ms(min(&ours)));
     println!("  calamine      median {:7.2} ms   best {:7.2} ms", ms(tm), ms(min(&theirs)));
