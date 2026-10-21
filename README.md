@@ -538,3 +538,6 @@ cargo package
 All four run in CI on Linux, Windows and macOS across five feature sets. A change that fixes a parser
 bug should come with a fixture that would have caught it — `tests/regressions.rs` is where those
 live.
+
+The full process is in [CONTRIBUTING.md](CONTRIBUTING.md), and the project follows the
+[code of conduct](CODE_OF_CONDUCT.md).

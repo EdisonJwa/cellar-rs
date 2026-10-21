@@ -1,6 +1,6 @@
 [package]
 name = "gridxcel-rs"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 rust-version = "1.88"
 description = "A pure-Rust reader for Excel and OpenDocument spreadsheet files"
@@ -12,7 +12,8 @@ documentation = "https://docs.rs/gridxcel-rs"
 readme = "README.md"
 # The comparison harness is a separate workspace that exists to measure this crate against
 # another reader. It is not part of the library and pulls a dependency this crate does not have.
-exclude = ["compare/", "fuzz/"]
+# `docs/` holds maintainer notes rather than user documentation, so it does not ship.
+exclude = ["compare/", "fuzz/", "docs/"]
 
 [dependencies]
 # Archive container backend. Deliberately the ONLY non-optional dependency, and

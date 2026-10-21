@@ -4,6 +4,23 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-10-21
+
+Repository files only. No code change, no API change.
+
+### Added
+
+- **CONTRIBUTING.md.** The README promised a contributing process and linked to nothing, so the
+  process now exists: how to report a parser bug usefully, what the four CI checks are, and what a
+  good change looks like here -- a fixture with every parser fix, a measurement with every
+  performance claim.
+- **CODE_OF_CONDUCT.md.**
+
+### Fixed
+
+- `docs/` is excluded from the package. It holds maintainer notes, which are worth keeping in the
+  repository and not worth shipping to everyone who depends on the crate.
+
 ## [0.1.2] - 2026-10-21
 
 Documentation only. No code change.
