@@ -54,22 +54,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cellar"
-version = "0.1.0"
-dependencies = [
- "zipcore",
-]
-
-[[package]]
-name = "cellar-compare"
-version = "0.0.0"
-dependencies = [
- "calamine",
- "cellar",
- "zipcore",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -144,6 +128,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb"
 dependencies = [
  "zlib-rs",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+]
+
+[[package]]
+name = "gridxcel-compare"
+version = "0.0.0"
+dependencies = [
+ "calamine",
+ "gridxcel-rs",
+ "zipcore",
+]
+
+[[package]]
+name = "gridxcel-rs"
+version = "0.1.0"
+dependencies = [
+ "zipcore",
 ]
 
 [[package]]
@@ -234,6 +245,12 @@ checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rustversion"
@@ -328,11 +345,12 @@ dependencies = [
 
 [[package]]
 name = "zipcore"
-version = "0.2.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7ff4a5c7700fb3544264cc21fe8ddb0facc0a23d856505b2c9fd00ea5b82ac"
+checksum = "0a70eabf6a55d0b1f0ccb1688d242b8f7b8436c1dd8afa8b40b1c902fcbdda6d"
 dependencies = [
  "crc32fast",
+ "getrandom",
  "miniz_oxide",
 ]
 

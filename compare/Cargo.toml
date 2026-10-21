@@ -13,7 +13,7 @@ edition = "2021"
 gridxcel-rs = { path = ".." }
 calamine = "0.37"
 # Needed to generate the forward-slash fixture copy and the synthetic archives.
-zipcore = "0.2"
+zipcore = "0.10.1"
 
 [[bin]]
 name = "compare"
@@ -21,3 +21,7 @@ path = "src/main.rs"
 [[bin]]
 name = "window"
 path = "src/window.rs"
+[[bin]]
+name = "profile_ods"
+path = "src/profile_ods.rs"
+

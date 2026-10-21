@@ -187,6 +187,11 @@ fn compare(label: &str, path: &std::path::Path, sheet: &str) {
 }
 
 fn main() {
+    // calamine is allowed to panic on a file this crate reads, and that is one of the results
+    // being measured, so the default hook's stack trace is noise rather than information. The
+    // panic is still caught and still reported on stdout, where it belongs in the table.
+    std::panic::set_hook(Box::new(|_| {}));
+
     // Fixtures go beside the crate rather than in the system temp directory, which is not
     // reliably writable on every platform this runs on.
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/fixtures");
